@@ -14,7 +14,7 @@
 
 ## Features
 
-- **10 Specialized Tools**: Search, browse, and extract content from ZIM archives with dedicated tools
+- **11 Specialized Tools**: Search, browse, and extract content from ZIM archives with dedicated tools
 - **Multi-Archive Search**: Search every ZIM file at once with `search_all` — no need to know which archive holds the answer
 - **Find Entries by Title**: Resolve titles to entry paths instantly with `find_entry_by_title` — case-insensitive, optionally cross-file
 - **Security First**: Comprehensive input validation and path traversal protection
@@ -150,9 +150,23 @@ python -m pytest tests/test_security.py -v
 
 ### Available Tools
 
-### list_zim_files - List all ZIM files in allowed directories
+### search_zim_files - Search ZIM file names by keyword
 
-No parameters required.
+**Required parameters:**
+
+- `query` (string): Keyword to match against ZIM file names (case-insensitive)
+- `limit` (integer, default: 10): Maximum results to return
+
+**Use this instead of `list_zim_files`** when you know part of the file name. Searching "nginx" returns only nginx-related archives instead of listing all 200 ZIM files.
+
+### list_zim_files - List all ZIM files (compact by default)
+
+**Optional parameters:**
+
+- `directory` (string): Filter to a specific directory path
+- `include_details` (boolean, default: false): Include size and modification date
+
+Use as a last resort — prefer `search_zim_files` when you know part of the file name. Default output is compact (name + path only); set `include_details` for full metadata.
 
 ### search_zim_file - Search within ZIM file content
 
@@ -514,34 +528,6 @@ or list_namespaces() to explore the file structure.
 - Currently supports ZIM files (Zeno IMproved format)
 - Tested with Wikipedia ZIM files (e.g., `wikipedia_en_100_2025-08.zim`)
 - File paths must be properly escaped in JSON (use `\\` for Windows paths)
-
----
-
-## Multi-Server Instance Management
-
-OpenZIM MCP includes multi-server instance tracking and conflict detection to ensure reliable operation when multiple server instances are running.
-
-### Instance Tracking Features
-
-- **Automatic Instance Registration**: Each server instance is automatically registered with a unique process ID and configuration hash
-- **Conflict Detection**: Detects when multiple servers with different configurations are accessing the same directories
-- **Stale Instance Cleanup**: Automatically identifies and cleans up orphaned instance files from terminated processes
-- **Configuration Validation**: Ensures all server instances use compatible configurations
-
-### Conflict Types
-
-1. **Configuration Mismatch**: Multiple servers with different settings accessing the same directories
-2. **Multiple Instances**: Multiple servers running simultaneously (may cause confusion)
-3. **Stale Instances**: Orphaned instance files from terminated processes
-
-### Automatic Conflict Warnings
-
-OpenZIM MCP automatically includes conflict warnings in search results and file listings when issues are detected:
-
-```plain
- **Server Conflict Detected**
- Configuration mismatch with server PID 12345. Search results may be inconsistent.
-```
 
 ---
 

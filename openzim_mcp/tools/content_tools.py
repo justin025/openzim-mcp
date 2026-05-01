@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from ..constants import INPUT_LIMIT_ENTRY_PATH, INPUT_LIMIT_FILE_PATH
-from ..exceptions import OpenZimMcpRateLimitError
 from ..security import sanitize_input
 
 if TYPE_CHECKING:
@@ -41,16 +40,6 @@ def register_content_tools(server: "OpenZimMcpServer") -> None:
             Entry content text
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_entry")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="get ZIM entry",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
@@ -61,10 +50,7 @@ def register_content_tools(server: "OpenZimMcpServer") -> None:
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: max_content_length must be at least 100 characters "
                     f"(provided: {max_content_length})\n\n"
-                    "**Troubleshooting**: Increase the max_content_length parameter "
-                    "or omit it to use the default.\n"
-                    "**Example**: Use `max_content_length=500` for a short preview, "
-                    "`5000` for longer content, or omit for default."
+                    "**Troubleshooting**: Increase max_content_length or omit for default.\n"
                 )
 
             if content_offset < 0:
@@ -72,8 +58,7 @@ def register_content_tools(server: "OpenZimMcpServer") -> None:
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: content_offset must be non-negative "
                     f"(provided: {content_offset})\n\n"
-                    "**Troubleshooting**: Use 0 to read from the start, or a "
-                    "positive integer to skip that many leading characters."
+                    "**Troubleshooting**: Use 0 to read from the start."
                 )
 
             # Use async operations to avoid blocking
@@ -83,8 +68,4 @@ def register_content_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error getting ZIM entry: {e}")
-            return server._create_enhanced_error_message(
-                operation="get ZIM entry",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
+            return f"Error getting ZIM entry: {e}"

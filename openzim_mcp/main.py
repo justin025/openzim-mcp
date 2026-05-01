@@ -1,11 +1,9 @@
 """Main entry point for OpenZIM MCP server."""
 
 import argparse
-import atexit
 import sys
 
 from .config import OpenZimMcpConfig
-from .instance_tracker import InstanceTracker
 from .server import OpenZimMcpServer
 
 
@@ -43,34 +41,8 @@ Environment Variables:
         # Create configuration
         config = OpenZimMcpConfig(allowed_directories=args.directories)
 
-        # Initialize instance tracker
-        instance_tracker = InstanceTracker()
-
-        # Register the cleanup atexit BEFORE register_instance, so that even
-        # a partially-completed registration (e.g. a write that succeeded for
-        # one directory but raised on another) still gets cleaned up.
-        def cleanup_instance() -> None:
-            # Use silent mode - logging may be closed during shutdown
-            instance_tracker.unregister_instance(silent=True)
-
-        atexit.register(cleanup_instance)
-
-        # Register this server instance. Filesystem errors here shouldn't
-        # block startup — instance tracking is advisory.
-        try:
-            instance_tracker.register_instance(
-                config_hash=config.get_config_hash(),
-                allowed_directories=config.allowed_directories,
-                server_name=config.server_name,
-            )
-        except Exception as e:
-            print(
-                f"Warning: failed to register instance for tracking: {e}",
-                file=sys.stderr,
-            )
-
         # Create and run server
-        server = OpenZimMcpServer(config, instance_tracker)
+        server = OpenZimMcpServer(config)
 
         print(
             "OpenZIM MCP server started",

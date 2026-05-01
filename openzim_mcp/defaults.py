@@ -6,7 +6,7 @@ making it easier to understand and modify the server's default behavior.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import List
 
 
 @dataclass(frozen=True)
@@ -29,15 +29,6 @@ class ContentDefaults:
     SEARCH_LIMIT: int = 10
     MAX_BINARY_SIZE: int = 10_000_000  # 10MB
     MAIN_PAGE_TRUNCATION: int = 5000  # Characters for main page display
-
-
-@dataclass(frozen=True)
-class RateLimitDefaults:
-    """Default values for rate limiting."""
-
-    ENABLED: bool = True
-    REQUESTS_PER_SECOND: float = 10.0
-    BURST_SIZE: int = 20
 
 
 @dataclass(frozen=True)
@@ -89,17 +80,11 @@ class ServerDefaults:
 # Instantiate defaults for easy access
 CACHE = CacheDefaults()
 CONTENT = ContentDefaults()
-RATE_LIMIT = RateLimitDefaults()
 INPUT_LIMITS = InputLimitDefaults()
 TIMEOUTS = TimeoutDefaults()
 SERVER = ServerDefaults()
 CACHE_PERFORMANCE = CachePerformanceThresholds()
 NAMESPACE_SAMPLING = NamespaceSamplingDefaults()
-
-# Tool mode constants
-TOOL_MODE_ADVANCED = "advanced"
-TOOL_MODE_SIMPLE = "simple"
-VALID_TOOL_MODES = {TOOL_MODE_ADVANCED, TOOL_MODE_SIMPLE}
 
 # File validation constants
 ZIM_FILE_EXTENSION = ".zim"
@@ -118,14 +103,3 @@ UNWANTED_HTML_SELECTORS: List[str] = [
     ".mw-parser-output .reflist",
     ".mw-editsection",
 ]
-
-# Rate limiter operation costs
-RATE_LIMIT_COSTS: Dict[str, int] = {
-    "search": 2,
-    "search_with_filters": 2,
-    "get_entry": 1,
-    "browse_namespace": 1,
-    "get_metadata": 1,
-    "get_structure": 1,
-    "default": 1,
-}

@@ -37,10 +37,6 @@ class AsyncZimOperations:
         """Access the underlying synchronous operations."""
         return self._ops
 
-    async def list_zim_files(self) -> str:
-        """List all ZIM files in allowed directories (async)."""
-        return await asyncio.to_thread(self._ops.list_zim_files)
-
     async def list_zim_files_data(self) -> list:
         """List all ZIM files as structured data (async)."""
         return await asyncio.to_thread(self._ops.list_zim_files_data)

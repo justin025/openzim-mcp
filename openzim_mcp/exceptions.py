@@ -82,7 +82,3 @@ class RegexTimeoutError(OpenZimMcpTimeoutError):
     error_code: str = "OPENZIM_REGEX_TIMEOUT"
 
 
-class OpenZimMcpRateLimitError(OpenZimMcpError):
-    """Raised when rate limit is exceeded."""
-
-    error_code: str = "OPENZIM_RATE_LIMIT_EXCEEDED"

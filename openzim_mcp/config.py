@@ -1,7 +1,5 @@
 """Configuration management for OpenZIM MCP server."""
 
-import hashlib
-import json
 import logging
 from pathlib import Path
 from typing import List
@@ -9,7 +7,7 @@ from typing import List
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .defaults import CACHE, CONTENT, RATE_LIMIT
+from .defaults import CACHE, CONTENT
 from .exceptions import OpenZimMcpConfigurationError
 
 
@@ -21,14 +19,6 @@ class CacheConfig(BaseModel):
     ttl_seconds: int = Field(default=CACHE.TTL_SECONDS, ge=60, le=86400)
     persistence_enabled: bool = Field(default=CACHE.PERSISTENCE_ENABLED)
     persistence_path: str = Field(default=CACHE.PERSISTENCE_PATH)
-
-
-class RateLimitConfig(BaseModel):
-    """Rate limiting configuration settings."""
-
-    enabled: bool = Field(default=RATE_LIMIT.ENABLED)
-    requests_per_second: float = Field(default=RATE_LIMIT.REQUESTS_PER_SECOND, gt=0)
-    burst_size: int = Field(default=RATE_LIMIT.BURST_SIZE, ge=1, le=1000)
 
 
 class ContentConfig(BaseModel):
@@ -65,7 +55,6 @@ class OpenZimMcpConfig(BaseSettings):
     cache: CacheConfig = Field(default_factory=CacheConfig)
     content: ContentConfig = Field(default_factory=ContentConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    rate_limit: RateLimitConfig = Field(default_factory=RateLimitConfig)
 
     # Server settings
     server_name: str = "openzim-mcp"
@@ -103,35 +92,3 @@ class OpenZimMcpConfig(BaseSettings):
             format=self.logging.format,
             force=True,
         )
-
-    def get_config_hash(self) -> str:
-        """
-        Generate a hash fingerprint of the current configuration.
-
-        This hash is used to detect configuration conflicts between
-        multiple server instances. Only configuration elements that
-        affect server behavior are included in the hash.
-
-        Returns:
-            SHA-256 hash of the configuration as a hex string
-        """
-        # Create a normalized configuration dict for hashing
-        config_for_hash = {
-            "allowed_directories": sorted(self.allowed_directories),
-            "cache_enabled": self.cache.enabled,
-            "cache_max_size": self.cache.max_size,
-            "cache_ttl_seconds": self.cache.ttl_seconds,
-            "content_max_length": self.content.max_content_length,
-            "content_snippet_length": self.content.snippet_length,
-            "search_default_limit": self.content.default_search_limit,
-            "server_name": self.server_name,
-            "rate_limit_enabled": self.rate_limit.enabled,
-            "rate_limit_rps": self.rate_limit.requests_per_second,
-            "rate_limit_burst": self.rate_limit.burst_size,
-        }
-
-        # Convert to JSON string with sorted keys for consistent hashing
-        config_json = json.dumps(config_for_hash, sort_keys=True, separators=(",", ":"))
-
-        # Generate SHA-256 hash
-        return hashlib.sha256(config_json.encode("utf-8")).hexdigest()

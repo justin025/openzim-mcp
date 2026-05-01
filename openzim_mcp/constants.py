@@ -14,7 +14,6 @@ from .defaults import (  # noqa: F401
     CONTENT,
     INPUT_LIMITS,
     NAMESPACE_SAMPLING,
-    RATE_LIMIT,
     TIMEOUTS,
     UNWANTED_HTML_SELECTORS,
     VALID_TRANSPORT_TYPES,

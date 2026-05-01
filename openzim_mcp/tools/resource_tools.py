@@ -35,14 +35,16 @@ def register_resources(server: "OpenZimMcpServer") -> None:
         title="Available ZIM files",
         description=(
             "Index of every ZIM file in the server's allowed directories. "
-            "JSON list of {name, path, size, modified}."
+            "Compact JSON list of {name, path} only. Use get_zim_file_details "
+            "for size/modification info on a specific file."
         ),
         mime_type="application/json",
     )
     def list_zim_files_resource() -> str:
         try:
             files = server.zim_operations.list_zim_files_data()
-            return json.dumps(files, indent=2, ensure_ascii=False)
+            compact = [{"name": f["name"], "path": f["path"]} for f in files]
+            return json.dumps(compact, ensure_ascii=False)
         except Exception as e:
             logger.warning(f"Resource zim://files failed: {e}")
             return json.dumps({"error": str(e)})
@@ -72,9 +74,10 @@ def register_resources(server: "OpenZimMcpServer") -> None:
                 return json.dumps(
                     {
                         "error": (
-                            f"ZIM file '{name}' not found. Available: "
-                            + ", ".join(Path(f["path"]).stem for f in files)
-                        )
+                            f"ZIM file '{name}' not found. "
+                            "Use zim://files to list available files."
+                        ),
+                        "available_stems": [Path(f["path"]).stem for f in files],
                     }
                 )
 

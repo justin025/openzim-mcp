@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from ..constants import INPUT_LIMIT_FILE_PATH
-from ..exceptions import OpenZimMcpRateLimitError
 from ..security import sanitize_input
 
 if TYPE_CHECKING:
@@ -31,16 +30,6 @@ def register_metadata_tools(server: "OpenZimMcpServer") -> None:
             JSON string containing namespace information
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_metadata")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="list namespaces",
-                    error=e,
-                    context=f"File: {zim_file_path}",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
 
@@ -49,8 +38,4 @@ def register_metadata_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error listing namespaces: {e}")
-            return server._create_enhanced_error_message(
-                operation="list namespaces",
-                error=e,
-                context=f"File: {zim_file_path}",
-            )
+            return f"Error listing namespaces: {e}"

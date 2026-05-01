@@ -1,9 +1,8 @@
 """File listing tools for OpenZIM MCP server."""
 
+import json
 import logging
-from typing import TYPE_CHECKING
-
-from ..exceptions import OpenZimMcpRateLimitError
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..server import OpenZimMcpServer
@@ -20,102 +19,82 @@ def register_file_tools(server: "OpenZimMcpServer") -> None:
     """
 
     @server.mcp.tool()
-    async def list_zim_files() -> str:
-        """List all ZIM files in allowed directories.
+    async def search_zim_files(query: str, limit: int = 10) -> str:
+        """Search ZIM file names by keyword.
 
-        Includes automatic conflict detection and warnings if multiple
-        server instances are detected.
+        Searches only the ZIM file names (not paths or metadata) for files
+        matching the query string. Case-insensitive partial match.
+
+        Use this instead of list_zim_files when you know part of the file name.
+        For example, searching "nginx" returns only nginx-related archives
+        instead of listing all 200 ZIM files.
+
+        Args:
+            query: Search keyword to match against ZIM file names
+            limit: Maximum number of results to return (default: 10)
 
         Returns:
-            JSON string containing the list of ZIM files and any warnings
+            JSON string containing matching ZIM file names and paths
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("default")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="list ZIM files",
-                    error=e,
-                    context="Listing available ZIM files",
-                )
+            all_files = server.zim_operations.list_zim_files_data()
+            query_lower = query.lower()
 
-            # Get the basic ZIM files list using async operations
-            zim_files_result = await server.async_zim_operations.list_zim_files()
+            matches = [
+                {"name": f["name"], "path": f["path"]}
+                for f in all_files
+                if query_lower in f["name"].lower()
+            ][:limit]
 
-            # Check for conflicts if instance tracker is available
-            warnings = []
-            if server.instance_tracker:
-                try:
-                    conflicts = server.instance_tracker.detect_conflicts(
-                        server.config.get_config_hash()
-                    )
-                    if conflicts:
-                        for conflict in conflicts:
-                            if conflict["type"] == "configuration_mismatch":
-                                warnings.append(
-                                    {
-                                        "type": "configuration_conflict",
-                                        "message": (
-                                            "WARNING: Configuration mismatch detected "
-                                            f"with server PID "
-                                            f"{conflict['instance']['pid']}"
-                                        ),
-                                        "resolution": (
-                                            "Different server configurations may "
-                                            "cause inconsistent results. Consider "
-                                            "stopping other instances or ensuring they "
-                                            "use the same configuration."
-                                        ),
-                                        "severity": "high",
-                                    }
-                                )
-                            elif conflict["type"] == "multiple_instances":
-                                warnings.append(
-                                    {
-                                        "type": "multiple_servers",
-                                        "message": (
-                                            "WARNING: Multiple server instances "
-                                            f"detected (PID "
-                                            f"{conflict['instance']['pid']})"
-                                        ),
-                                        "resolution": (
-                                            "Multiple servers may cause confusion. "
-                                            "Use 'diagnose_server_state()' for "
-                                            "analysis or stop unused instances."
-                                        ),
-                                        "severity": "medium",
-                                    }
-                                )
-                except Exception as e:
-                    warnings.append(
-                        {
-                            "type": "diagnostic_error",
-                            "message": f"Could not check for server conflicts: {e}",
-                            "resolution": (
-                                "Server conflict detection failed. Results may "
-                                "be from a different server instance."
-                            ),
-                            "severity": "low",
-                        }
-                    )
+            if not matches:
+                return f"No ZIM files found matching '{query}'."
 
-            # If there are warnings, prepend them to the result
-            if warnings:
-                warning_text = "\nSERVER DIAGNOSTICS:\n"
-                for warning in warnings:
-                    warning_text += f"\n{warning['message']}\n"
-                    warning_text += f"Resolution: {warning['resolution']}\n"
+            return json.dumps(matches, indent=2, ensure_ascii=False)
 
-                warning_text += "\nZIM FILES:\n"
-                return warning_text + zim_files_result
-            else:
-                return zim_files_result
+        except Exception as e:
+            logger.error(f"Error searching ZIM files: {e}")
+            return f"Error searching ZIM files: {e}"
+
+    @server.mcp.tool()
+    async def list_zim_files(
+        directory: Optional[str] = None,
+        include_details: bool = False,
+    ) -> str:
+        """List all ZIM files in allowed directories.
+
+        Use this tool as a last resort — prefer search_zim_files when you
+        know part of the file name.
+
+        Args:
+            directory: Optional filter to list files from a specific directory
+                path (e.g., "/home/user/zim"). If not provided, lists all
+                directories.
+            include_details: If true, includes size and modification date.
+                Default false — only returns name and path to save tokens.
+
+        Returns:
+            JSON string containing ZIM file names (and optionally full metadata)
+        """
+        try:
+            all_files = server.zim_operations.list_zim_files_data()
+
+            if not all_files:
+                return "No ZIM files found in allowed directories."
+
+            # Filter by directory if provided
+            if directory:
+                all_files = [f for f in all_files if f["directory"] == directory]
+
+            if not all_files:
+                return f"No ZIM files found in directory: {directory}"
+
+            if include_details:
+                return json.dumps(all_files, indent=2, ensure_ascii=False)
+
+            compact = [{"name": f["name"], "path": f["path"]} for f in all_files]
+            return json.dumps(compact, ensure_ascii=False)
 
         except Exception as e:
             logger.error(f"Error listing ZIM files: {e}")
-            return server._create_enhanced_error_message(
-                operation="list ZIM files",
-                error=e,
-                context="Scanning allowed directories for ZIM files",
-            )
+            return f"Error listing ZIM files: {e}"
+

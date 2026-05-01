@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from ..constants import INPUT_LIMIT_FILE_PATH, INPUT_LIMIT_QUERY
-from ..exceptions import OpenZimMcpRateLimitError
 from ..security import sanitize_input
 
 if TYPE_CHECKING:
@@ -40,16 +39,6 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
             Search result text
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("search")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="search ZIM file",
-                    error=e,
-                    context=f"Query: '{query}'",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             query = sanitize_input(query, INPUT_LIMIT_QUERY)
@@ -62,18 +51,14 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
                     f"(provided: {limit})\n\n"
                     "**Troubleshooting**: Adjust the limit parameter to be "
                     "within the valid range.\n"
-                    "**Example**: Use `limit=10` for 10 results or "
-                    "`limit=50` for more results."
+                    "**Example**: Use `limit=10` for 10 results."
                 )
 
             if offset < 0:
                 return (
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: Offset must be non-negative (provided: {offset})\n\n"
-                    "**Troubleshooting**: Use `offset=0` to start from the "
-                    "beginning, or a positive number to skip results.\n"
-                    "**Example**: Use `offset=0` for first page, "
-                    "`offset=10` for second page with limit=10."
+                    "**Troubleshooting**: Use `offset=0` for first page."
                 )
 
             # Perform the search using async operations
@@ -81,16 +66,11 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
                 zim_file_path, query, limit, offset
             )
 
-            # Add proactive conflict detection for search operations
-            return server._check_and_append_conflict_warnings(search_result)
+            return search_result
 
         except Exception as e:
             logger.error(f"Error searching ZIM file: {e}")
-            return server._create_enhanced_error_message(
-                operation="search ZIM file",
-                error=e,
-                context=f"File: {zim_file_path}, Query: '{query}'",
-            )
+            return f"Error searching ZIM file: {e}"
 
     @server.mcp.tool()
     async def search_all(
@@ -100,39 +80,22 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
         """Search across every ZIM file in the allowed directories.
 
         Returns merged per-file results so the caller doesn't need to know
-        which file holds the information they want. Files that can't be
-        searched (corrupt, no full-text index) are skipped without aborting
-        the rest.
+        which file holds the information they want.
 
         Args:
             query: Search query term (required)
             limit_per_file: Max hits per ZIM file (1-50, default: 5)
 
         Returns:
-            JSON containing per-file result groups and counts of files
-            searched / with-results / failed
+            JSON containing per-file result groups and counts
         """
         try:
-            try:
-                server.rate_limiter.check_rate_limit("search")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="search across ZIM files",
-                    error=e,
-                    context=f"Query: '{query}'",
-                )
-
             query = sanitize_input(query, INPUT_LIMIT_QUERY)
-
             return await server.async_zim_operations.search_all(query, limit_per_file)
 
         except Exception as e:
             logger.error(f"Error in search_all: {e}")
-            return server._create_enhanced_error_message(
-                operation="search across ZIM files",
-                error=e,
-                context=f"Query: '{query}'",
-            )
+            return f"Error searching across ZIM files: {e}"
 
     @server.mcp.tool()
     async def find_entry_by_title(
@@ -144,9 +107,6 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
         """Resolve a title to one or more entry paths.
 
         Cheaper than full-text search when the caller knows the article title.
-        Tries an exact normalized C/<Title> match first (fast path), then
-        falls back to libzim's title-indexed suggestion search. Set
-        cross_file=True to query every ZIM file in allowed directories.
 
         Args:
             zim_file_path: Path to the ZIM file (used unless cross_file=True)
@@ -158,15 +118,6 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
             JSON with query, ranked results, fast_path_hit flag, files_searched
         """
         try:
-            try:
-                server.rate_limiter.check_rate_limit("find_entry_by_title")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="find entry by title",
-                    error=e,
-                    context=f"Title: '{title}'",
-                )
-
             title = sanitize_input(title, INPUT_LIMIT_QUERY)
             if not cross_file:
                 zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
@@ -177,8 +128,4 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error in find_entry_by_title: {e}")
-            return server._create_enhanced_error_message(
-                operation="find entry by title",
-                error=e,
-                context=f"File: {zim_file_path}, Title: '{title}'",
-            )
+            return f"Error finding entry by title: {e}"

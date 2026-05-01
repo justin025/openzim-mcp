@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from ..constants import INPUT_LIMIT_FILE_PATH, INPUT_LIMIT_QUERY
-from ..exceptions import OpenZimMcpRateLimitError
 from ..security import sanitize_input
 
 if TYPE_CHECKING:
@@ -43,16 +42,6 @@ def register_navigation_tools(server: "OpenZimMcpServer") -> None:
             Search result text
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("search_with_filters")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="filtered search",
-                    error=e,
-                    context=f"Query: '{query}'",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             query = sanitize_input(query, INPUT_LIMIT_QUERY)
@@ -67,17 +56,13 @@ def register_navigation_tools(server: "OpenZimMcpServer") -> None:
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: limit must be between 1 and 100 "
                     f"(provided: {limit})\n\n"
-                    "**Troubleshooting**: Adjust the limit parameter or "
-                    "omit it to use the default.\n"
-                    "**Example**: Use `limit=20` for a reasonable number."
+                    "**Troubleshooting**: Adjust the limit or omit for default."
                 )
             if offset < 0:
                 return (
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: offset must be non-negative (provided: {offset})\n\n"
-                    "**Troubleshooting**: Use offset=0 to start from the beginning, "
-                    "or a positive number for pagination.\n"
-                    "**Example**: Use `offset=20` to get the next page of results."
+                    "**Troubleshooting**: Use offset=0 for first page."
                 )
 
             # Perform the filtered search using async operations
@@ -85,13 +70,8 @@ def register_navigation_tools(server: "OpenZimMcpServer") -> None:
                 zim_file_path, query, namespace, content_type, limit, offset
             )
 
-            # Add proactive conflict detection for filtered search operations
-            return server._check_and_append_conflict_warnings(search_result)
+            return search_result
 
         except Exception as e:
             logger.error(f"Error in filtered search: {e}")
-            return server._create_enhanced_error_message(
-                operation="filtered search",
-                error=e,
-                context=f"File: {zim_file_path}, Query: {query}",
-            )
+            return f"Error searching with filters: {e}"

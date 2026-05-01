@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from ..constants import INPUT_LIMIT_ENTRY_PATH, INPUT_LIMIT_FILE_PATH
-from ..exceptions import OpenZimMcpRateLimitError
 from ..security import sanitize_input
 
 if TYPE_CHECKING:
@@ -32,16 +31,6 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
             JSON string containing extracted links
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_structure")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="extract article links",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
@@ -53,11 +42,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error extracting article links: {e}")
-            return server._create_enhanced_error_message(
-                operation="extract article links",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
+            return f"Error extracting article links: {e}"
 
     @server.mcp.tool()
     async def get_entry_summary(
@@ -68,8 +53,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
         """Get a concise summary of an article without returning the full content.
 
         This tool extracts the opening paragraph(s) or introduction section,
-        providing a quick overview of the article content. Useful for getting
-        context without loading full articles.
+        providing a quick overview of the article content.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -80,16 +64,6 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
             JSON string containing summary, title, word count, and truncation status.
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_entry")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="get entry summary",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
@@ -100,9 +74,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
                     "**Parameter Validation Error**\n\n"
                     f"**Issue**: max_words must be between 1 and 1000 "
                     f"(provided: {max_words})\n\n"
-                    "**Troubleshooting**: Adjust max_words to a value within the "
-                    "valid range.\n"
-                    "**Example**: Use `max_words=200` for a typical summary."
+                    "**Troubleshooting**: Adjust max_words to 1-1000."
                 )
 
             # Use async operations
@@ -112,11 +84,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error getting entry summary: {e}")
-            return server._create_enhanced_error_message(
-                operation="get entry summary",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
+            return f"Error getting entry summary: {e}"
 
     @server.mcp.tool()
     async def get_table_of_contents(
@@ -125,8 +93,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
     ) -> str:
         """Extract a hierarchical table of contents from an article.
 
-        Returns a structured TOC tree based on heading levels (h1-h6),
-        suitable for navigation and content overview.
+        Returns a structured TOC tree based on heading levels (h1-h6).
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -136,16 +103,6 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
             JSON string containing hierarchical TOC, heading count, and max depth.
         """
         try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_structure")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="get table of contents",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
             # Sanitize inputs
             zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
             entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
@@ -157,8 +114,4 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
 
         except Exception as e:
             logger.error(f"Error getting table of contents: {e}")
-            return server._create_enhanced_error_message(
-                operation="get table of contents",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
+            return f"Error getting table of contents: {e}"
