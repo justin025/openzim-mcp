@@ -14,11 +14,9 @@
 
 ## Features
 
-- **Dual Mode Support**: Choose between Simple mode (1 intelligent natural language tool, default) or Advanced mode (22 specialized tools)
-- **Multi-Archive Search**: 🆕 Search every ZIM file at once with `search_all` — no need to know which archive holds the answer
-- **MCP Prompts**: 🆕 Pre-built workflow slash commands (`/research`, `/summarize`, `/explore`) that orchestrate multi-step ZIM operations
-- **Find Entries by Title**: 🆕 Resolve titles to entry paths instantly with `find_entry_by_title` — case-insensitive, optionally cross-file
-- **Binary Content Retrieval**: Extract PDFs, images, videos, and other embedded media for multi-agent workflows
+- **10 Specialized Tools**: Search, browse, and extract content from ZIM archives with dedicated tools
+- **Multi-Archive Search**: Search every ZIM file at once with `search_all` — no need to know which archive holds the answer
+- **Find Entries by Title**: Resolve titles to entry paths instantly with `find_entry_by_title` — case-insensitive, optionally cross-file
 - **Security First**: Comprehensive input validation and path traversal protection
 - **High Performance**: Intelligent caching and optimized ZIM file operations
 - **Smart Retrieval**: Automatic fallback from direct access to search-based retrieval for reliable entry access
@@ -34,38 +32,16 @@
 
 `search_all` queries every ZIM file in your allowed directories at once and merges the results — no need to know which archive holds the answer.
 
-### MCP Prompts
-
-Three pre-built workflows you can invoke as slash commands in MCP-aware clients:
-
-- `/research <topic>` — search across all archives, then drill into top hits
-- `/summarize <zim_file_path> <entry_path>` — TOC + summary + key links
-- `/explore <zim_file_path>` — high-level briefing of a ZIM's contents
-
 ### Find entries by title
 
 `find_entry_by_title` resolves a title (or partial title) to one or more entry paths, with case-insensitive matching. Cheaper than full-text search when you already know the article name.
 
-### Power-user tools
-
-- `walk_namespace` — deterministic cursor-paginated namespace iteration (vs. `browse_namespace` which samples)
-- `get_random_entry` — sample one random article (great with `/explore`)
-- `get_related_articles` — link-graph nearest neighbours (outbound, inbound, or both)
-
-
 ### MCP Resources
 
-First use of the MCP **resources** primitive — your client's resource browser and `@`-mention picker now see ZIM files directly:
+MCP **resources** let your client's resource browser and `@`-mention picker see ZIM files directly:
 
 - `zim://files` — index of all available ZIM files
 - `zim://{name}` — overview of one ZIM (metadata, namespaces, main page preview)
-
-### Reliability fixes
-
-- Namespace listing now deterministically surfaces minority namespaces (M, W, X, I) that random sampling could miss
-- Search filtering uses streaming scan instead of a hard 1000-hit cap (rare-mime-type filters now return matches that were previously hidden)
-- Error messages route by failure mode first (no more "check disk space" for "entry not found")
-- Phantom server-instance conflicts no longer reported (TOCTOU re-check before raising)
 
 ## Quick Start
 
@@ -110,44 +86,17 @@ source venv/bin/activate
 Then run:
 
 ```bash
-# Simple mode (default) - 1 intelligent natural language tool
 openzim-mcp /path/to/zim/files
 python -m openzim_mcp /path/to/zim/files
-
-# Advanced mode - all 22 specialized tools
-openzim-mcp --mode advanced /path/to/zim/files
-python -m openzim_mcp --mode advanced /path/to/zim/files
 ```
 
-### Tool Modes
-
-OpenZIM MCP supports two modes:
-
-- **Simple Mode** (default): Provides 1 intelligent tool (`zim_query`) that accepts natural language queries
-- **Advanced Mode**: Exposes all 22 specialized MCP tools for maximum control
-
-See [Simple Mode Guide](docs/SIMPLE_MODE_GUIDE.md) for detailed information.
-
 ### MCP Configuration
-
-**Simple Mode (default):**
 
 ```json
 {
   "openzim-mcp": {
     "command": "openzim-mcp",
     "args": ["/path/to/zim/files"]
-  }
-}
-```
-
-**Advanced Mode:**
-
-```json
-{
-  "openzim-mcp-advanced": {
-    "command": "openzim-mcp",
-    "args": ["--mode", "advanced", "/path/to/zim/files"]
   }
 }
 ```
@@ -235,24 +184,6 @@ No parameters required.
 - **Enhanced Error Guidance**: Provides clear guidance when entries cannot be found, suggesting alternative approaches
 - **Transparent Operation**: Works seamlessly regardless of path encoding differences (spaces vs underscores, URL encoding, etc.)
 
-### get_zim_metadata - Get ZIM file metadata from M namespace entries
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-
-**Returns:**
-JSON string containing ZIM metadata including entry counts, archive information, and metadata entries like title, description, language, creator, etc.
-
-### get_main_page - Get the main page entry from W namespace
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-
-**Returns:**
-Main page content or information about the main page entry.
-
 ### list_namespaces - List available namespaces and their entry counts
 
 **Required parameters:**
@@ -262,22 +193,7 @@ Main page content or information about the main page entry.
 **Returns:**
 JSON string containing namespace information with entry counts, descriptions, and sample entries for each namespace (C, M, W, X, etc.).
 
-### browse_namespace - Browse entries in a specific namespace with pagination
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-- `namespace` (string): Namespace to browse (C, M, W, X, A, I, etc.)
-
-**Optional parameters:**
-
-- `limit` (integer, default: 50, range: 1-200): Maximum number of entries to return
-- `offset` (integer, default: 0): Starting offset for pagination
-
-**Returns:**
-JSON string containing namespace entries with titles, content previews, and pagination information.
-
-### search_with_filters - Search within ZIM file content with advanced filters
+### search_with_filters - Search within ZIM file content with optional namespace and content type filters
 
 **Required parameters:**
 
@@ -293,30 +209,6 @@ JSON string containing namespace entries with titles, content previews, and pagi
 
 **Returns:**
 Filtered search results with namespace and content type information.
-
-### get_search_suggestions - Get search suggestions and auto-complete
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-- `partial_query` (string): Partial search query (minimum 2 characters)
-
-**Optional parameters:**
-
-- `limit` (integer, default: 10, range: 1-50): Maximum number of suggestions to return
-
-**Returns:**
-JSON string containing search suggestions based on article titles and content.
-
-### get_article_structure - Extract article structure and metadata
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-- `entry_path` (string): Entry path, e.g., 'C/Some_Article'
-
-**Returns:**
-JSON string containing article structure including headings, sections, metadata, and word count.
 
 ### extract_article_links - Extract internal and external links from an article
 
@@ -364,38 +256,6 @@ JSON string containing a hierarchical tree structure of article headings (h1-h6)
 - Includes heading levels, text, and anchor IDs
 - Provides heading count and maximum depth statistics
 - Enables LLMs to navigate directly to specific sections
-
-### get_binary_entry - Retrieve binary content from a ZIM entry
-
-**Required parameters:**
-
-- `zim_file_path` (string): Path to the ZIM file
-- `entry_path` (string): Entry path, e.g., 'I/image.png' or 'I/document.pdf'
-
-**Optional parameters:**
-
-- `max_size_bytes` (integer): Maximum size of content to return (default: 10MB). Content larger than this will return metadata only.
-- `include_data` (boolean): If true (default), include base64-encoded data. Set to false to retrieve metadata only.
-
-**Returns:**
-
-JSON string containing:
-
-- `path`: Entry path in ZIM file
-- `title`: Entry title
-- `mime_type`: Content type (e.g., "application/pdf", "image/png")
-- `size`: Size in bytes
-- `size_human`: Human-readable size (e.g., "1.5 MB")
-- `encoding`: "base64" when data is included, null otherwise
-- `data`: Base64-encoded content (if include_data=true and under size limit)
-- `truncated`: Boolean indicating if content exceeded size limit
-
-**Use Cases:**
-
-- Retrieve PDFs for processing with PDF parsing tools
-- Extract images for vision models or OCR tools
-- Get video/audio files for transcription services
-- Enable multi-agent workflows with specialized content processors
 
 ---
 
@@ -496,70 +356,6 @@ Found 1 ZIM files in 1 directories:
 
 ### Advanced Knowledge Retrieval Examples
 
-**Getting ZIM metadata:**
-
-```json
-{
-  "name": "get_zim_metadata",
-  "arguments": {
-    "zim_file_path": "C:\\zim\\wikipedia_en_100_2025-08.zim"
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "entry_count": 100000,
-  "all_entry_count": 120000,
-  "article_count": 80000,
-  "media_count": 20000,
-  "metadata_entries": {
-    "Title": "Wikipedia (English)",
-    "Description": "Wikipedia articles in English",
-    "Language": "eng",
-    "Creator": "Kiwix",
-    "Date": "2025-08-15"
-  }
-}
-```
-
-**Browsing a namespace:**
-
-```json
-{
-  "name": "browse_namespace",
-  "arguments": {
-    "zim_file_path": "C:\\zim\\wikipedia_en_100_2025-08.zim",
-    "namespace": "C",
-    "limit": 5,
-    "offset": 0
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "namespace": "C",
-  "total_in_namespace": 80000,
-  "offset": 0,
-  "limit": 5,
-  "returned_count": 5,
-  "has_more": true,
-  "entries": [
-    {
-      "path": "C/Biology",
-      "title": "Biology",
-      "content_type": "text/html",
-      "preview": "Biology is the scientific study of life..."
-    }
-  ]
-}
-```
-
 **Filtered search:**
 
 ```json
@@ -572,42 +368,6 @@ Response:
     "content_type": "text/html",
     "limit": 3
   }
-}
-```
-
-**Getting article structure:**
-
-```json
-{
-  "name": "get_article_structure",
-  "arguments": {
-    "zim_file_path": "C:\\zim\\wikipedia_en_100_2025-08.zim",
-    "entry_path": "C/Evolution"
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "title": "Evolution",
-  "path": "C/Evolution",
-  "content_type": "text/html",
-  "headings": [
-    {"level": 1, "text": "Evolution", "id": "evolution"},
-    {"level": 2, "text": "History", "id": "history"},
-    {"level": 2, "text": "Mechanisms", "id": "mechanisms"}
-  ],
-  "sections": [
-    {
-      "title": "Evolution",
-      "level": 1,
-      "content_preview": "Evolution is the change in heritable traits...",
-      "word_count": 150
-    }
-  ],
-  "word_count": 5000
 }
 ```
 
@@ -682,33 +442,6 @@ Response:
 }
 ```
 
-**Getting search suggestions:**
-
-```json
-{
-  "name": "get_search_suggestions",
-  "arguments": {
-    "zim_file_path": "C:\\zim\\wikipedia_en_100_2025-08.zim",
-    "partial_query": "bio",
-    "limit": 5
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "partial_query": "bio",
-  "suggestions": [
-    {"text": "Biology", "path": "C/Biology", "type": "title_start_match"},
-    {"text": "Biochemistry", "path": "C/Biochemistry", "type": "title_start_match"},
-    {"text": "Biodiversity", "path": "C/Biodiversity", "type": "title_start_match"}
-  ],
-  "count": 3
-}
-```
-
 ---
 
 ## ZIM Entry Retrieval Best Practices
@@ -758,7 +491,7 @@ The system will automatically provide guidance:
 Entry not found: 'A/Article_Name'.
 The entry path may not exist in this ZIM file.
 Try using search_zim_file() to find available entries,
-or browse_namespace() to explore the file structure.
+or list_namespaces() to explore the file structure.
 ```
 
 ---

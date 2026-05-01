@@ -82,7 +82,6 @@ class ServerDefaults:
     """Default values for server configuration."""
 
     NAME: str = "openzim-mcp"
-    TOOL_MODE: str = "simple"
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
@@ -125,10 +124,8 @@ RATE_LIMIT_COSTS: Dict[str, int] = {
     "search": 2,
     "search_with_filters": 2,
     "get_entry": 1,
-    "get_binary_entry": 3,
     "browse_namespace": 1,
     "get_metadata": 1,
     "get_structure": 1,
-    "suggestions": 1,
     "default": 1,
 }

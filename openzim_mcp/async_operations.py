@@ -38,19 +38,11 @@ class AsyncZimOperations:
         return self._ops
 
     async def list_zim_files(self) -> str:
-        """List all ZIM files in allowed directories (async).
-
-        Returns:
-            JSON string containing the list of ZIM files
-        """
+        """List all ZIM files in allowed directories (async)."""
         return await asyncio.to_thread(self._ops.list_zim_files)
 
     async def list_zim_files_data(self) -> list:
-        """List all ZIM files as structured data (async).
-
-        Returns:
-            List of dictionaries containing ZIM file information
-        """
+        """List all ZIM files as structured data (async)."""
         return await asyncio.to_thread(self._ops.list_zim_files_data)
 
     async def search_zim_file(
@@ -60,17 +52,7 @@ class AsyncZimOperations:
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> str:
-        """Search within ZIM file content (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            query: Search query term
-            limit: Maximum number of results to return
-            offset: Result starting offset (for pagination)
-
-        Returns:
-            Search result text
-        """
+        """Search within ZIM file content (async)."""
         return await asyncio.to_thread(
             self._ops.search_zim_file, zim_file_path, query, limit, offset
         )
@@ -82,17 +64,7 @@ class AsyncZimOperations:
         max_content_length: Optional[int] = None,
         content_offset: int = 0,
     ) -> str:
-        """Get an entry from a ZIM file (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry within the ZIM file
-            max_content_length: Maximum content length to return
-            content_offset: Character offset to start reading from (default 0)
-
-        Returns:
-            Entry content as text
-        """
+        """Get an entry from a ZIM file (async)."""
         return await asyncio.to_thread(
             self._ops.get_zim_entry,
             zim_file_path,
@@ -101,60 +73,9 @@ class AsyncZimOperations:
             content_offset,
         )
 
-    async def get_zim_metadata(self, zim_file_path: str) -> str:
-        """Get metadata for a ZIM file (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-
-        Returns:
-            Metadata as JSON string
-        """
-        return await asyncio.to_thread(self._ops.get_zim_metadata, zim_file_path)
-
-    async def get_main_page(self, zim_file_path: str) -> str:
-        """Get the main page of a ZIM file (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-
-        Returns:
-            Main page content
-        """
-        return await asyncio.to_thread(self._ops.get_main_page, zim_file_path)
-
     async def list_namespaces(self, zim_file_path: str) -> str:
-        """List all namespaces in a ZIM file (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-
-        Returns:
-            Namespaces as JSON string
-        """
+        """List all namespaces in a ZIM file (async)."""
         return await asyncio.to_thread(self._ops.list_namespaces, zim_file_path)
-
-    async def browse_namespace(
-        self,
-        zim_file_path: str,
-        namespace: str = "C",
-        limit: int = 50,
-        offset: int = 0,
-    ) -> str:
-        """Browse entries in a namespace (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            namespace: Namespace to browse
-            limit: Maximum number of entries
-            offset: Starting offset
-
-        Returns:
-            Entries as JSON string
-        """
-        return await asyncio.to_thread(
-            self._ops.browse_namespace, zim_file_path, namespace, limit, offset
-        )
 
     async def search_with_filters(
         self,
@@ -165,19 +86,7 @@ class AsyncZimOperations:
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> str:
-        """Search with filters (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            query: Search query
-            namespace: Optional namespace filter
-            content_type: Optional content type filter
-            limit: Maximum results
-            offset: Starting offset
-
-        Returns:
-            Search results as JSON string
-        """
+        """Search with filters (async)."""
         return await asyncio.to_thread(
             self._ops.search_with_filters,
             zim_file_path,
@@ -188,58 +97,12 @@ class AsyncZimOperations:
             offset,
         )
 
-    async def get_search_suggestions(
-        self,
-        zim_file_path: str,
-        partial_query: str,
-        limit: int = 10,
-    ) -> str:
-        """Get search suggestions (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            partial_query: Partial search query
-            limit: Maximum suggestions
-
-        Returns:
-            Suggestions as JSON string
-        """
-        return await asyncio.to_thread(
-            self._ops.get_search_suggestions, zim_file_path, partial_query, limit
-        )
-
-    async def get_article_structure(
-        self,
-        zim_file_path: str,
-        entry_path: str,
-    ) -> str:
-        """Get article structure (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry
-
-        Returns:
-            Article structure as JSON string
-        """
-        return await asyncio.to_thread(
-            self._ops.get_article_structure, zim_file_path, entry_path
-        )
-
     async def extract_article_links(
         self,
         zim_file_path: str,
         entry_path: str,
     ) -> str:
-        """Extract links from an article (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry
-
-        Returns:
-            Links as JSON string
-        """
+        """Extract links from an article (async)."""
         return await asyncio.to_thread(
             self._ops.extract_article_links, zim_file_path, entry_path
         )
@@ -250,16 +113,7 @@ class AsyncZimOperations:
         entry_path: str,
         max_words: int = 200,
     ) -> str:
-        """Get entry summary (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry
-            max_words: Maximum words in summary
-
-        Returns:
-            Summary text
-        """
+        """Get entry summary (async)."""
         return await asyncio.to_thread(
             self._ops.get_entry_summary, zim_file_path, entry_path, max_words
         )
@@ -269,59 +123,9 @@ class AsyncZimOperations:
         zim_file_path: str,
         entry_path: str,
     ) -> str:
-        """Get table of contents (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry
-
-        Returns:
-            Table of contents as JSON string
-        """
+        """Get table of contents (async)."""
         return await asyncio.to_thread(
             self._ops.get_table_of_contents, zim_file_path, entry_path
-        )
-
-    async def get_binary_entry(
-        self,
-        zim_file_path: str,
-        entry_path: str,
-        max_size_bytes: Optional[int] = None,
-        include_data: bool = True,
-    ) -> str:
-        """Get binary entry content (async).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Path to the entry
-            max_size_bytes: Maximum size to retrieve
-            include_data: Whether to include base64 data
-
-        Returns:
-            Binary entry as JSON string
-        """
-        return await asyncio.to_thread(
-            self._ops.get_binary_entry,
-            zim_file_path,
-            entry_path,
-            max_size_bytes,
-            include_data,
-        )
-
-    async def warm_cache(self, zim_file_path: str) -> str:
-        """Warm the cache for a ZIM file (async)."""
-        return await asyncio.to_thread(self._ops.warm_cache, zim_file_path)
-
-    async def walk_namespace(
-        self,
-        zim_file_path: str,
-        namespace: str,
-        cursor: int = 0,
-        limit: int = 200,
-    ) -> str:
-        """Walk all entries in a namespace by ID (async)."""
-        return await asyncio.to_thread(
-            self._ops.walk_namespace, zim_file_path, namespace, cursor, limit
         )
 
     async def search_all(self, query: str, limit_per_file: int = 5) -> str:
@@ -342,30 +146,4 @@ class AsyncZimOperations:
             title,
             cross_file,
             limit,
-        )
-
-    async def get_random_entry(self, zim_file_path: str, namespace: str = "C") -> str:
-        """Get random entry (async)."""
-        return await asyncio.to_thread(
-            self._ops.get_random_entry, zim_file_path, namespace
-        )
-
-    async def get_related_articles(
-        self,
-        zim_file_path: str,
-        entry_path: str,
-        limit: int = 10,
-        direction: str = "outbound",
-        inbound_scan_cap: int = 1000,
-        inbound_cursor: int = 0,
-    ) -> str:
-        """Get related articles via link graph (async)."""
-        return await asyncio.to_thread(
-            self._ops.get_related_articles,
-            zim_file_path,
-            entry_path,
-            limit,
-            direction,
-            inbound_scan_cap,
-            inbound_cursor,
         )

@@ -4,12 +4,12 @@ import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import List, Literal
+from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .defaults import CACHE, CONTENT, RATE_LIMIT, VALID_TOOL_MODES
+from .defaults import CACHE, CONTENT, RATE_LIMIT
 from .exceptions import OpenZimMcpConfigurationError
 
 
@@ -69,13 +69,6 @@ class OpenZimMcpConfig(BaseSettings):
 
     # Server settings
     server_name: str = "openzim-mcp"
-    tool_mode: Literal["advanced", "simple"] = Field(
-        default="simple",
-        description=(
-            "Tool mode: 'advanced' for all 18 tools, "
-            "'simple' for 1 intelligent tool plus underlying tools"
-        ),
-    )
 
     model_config = SettingsConfigDict(
         env_prefix="OPENZIM_MCP_",
@@ -103,16 +96,6 @@ class OpenZimMcpConfig(BaseSettings):
 
         return validated_dirs
 
-    @field_validator("tool_mode")
-    @classmethod
-    def validate_tool_mode(cls, v: str) -> str:
-        """Validate tool mode."""
-        if v not in VALID_TOOL_MODES:
-            raise OpenZimMcpConfigurationError(
-                f"Invalid tool mode: {v}. Must be one of {VALID_TOOL_MODES}"
-            )
-        return v
-
     def setup_logging(self) -> None:
         """Configure logging based on settings."""
         logging.basicConfig(
@@ -134,9 +117,7 @@ class OpenZimMcpConfig(BaseSettings):
         """
         # Create a normalized configuration dict for hashing
         config_for_hash = {
-            "allowed_directories": sorted(
-                self.allowed_directories
-            ),  # Sort for consistency
+            "allowed_directories": sorted(self.allowed_directories),
             "cache_enabled": self.cache.enabled,
             "cache_max_size": self.cache.max_size,
             "cache_ttl_seconds": self.cache.ttl_seconds,
@@ -144,7 +125,6 @@ class OpenZimMcpConfig(BaseSettings):
             "content_snippet_length": self.content.snippet_length,
             "search_default_limit": self.content.default_search_limit,
             "server_name": self.server_name,
-            "tool_mode": self.tool_mode,
             "rate_limit_enabled": self.rate_limit.enabled,
             "rate_limit_rps": self.rate_limit.requests_per_second,
             "rate_limit_burst": self.rate_limit.burst_size,

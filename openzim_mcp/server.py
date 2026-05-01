@@ -1,15 +1,14 @@
 """Main OpenZIM MCP server implementation."""
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Literal
 
 from mcp.server.fastmcp import FastMCP
 
 from .async_operations import AsyncZimOperations
 from .cache import OpenZimMcpCache
 from .config import OpenZimMcpConfig
-from .constants import TOOL_MODE_SIMPLE, VALID_TRANSPORT_TYPES
+from .constants import VALID_TRANSPORT_TYPES
 from .content_processor import ContentProcessor
 from .error_messages import (
     format_error_message,
@@ -20,7 +19,6 @@ from .exceptions import OpenZimMcpConfigurationError
 from .instance_tracker import InstanceTracker
 from .rate_limiter import RateLimitConfig, RateLimiter
 from .security import PathValidator, sanitize_context_for_error
-from .simple_tools import SimpleToolsHandler
 from .tools import register_all_tools
 from .zim_operations import ZimOperations
 
@@ -33,7 +31,7 @@ class OpenZimMcpServer:
     def __init__(
         self,
         config: OpenZimMcpConfig,
-        instance_tracker: Optional[InstanceTracker] = None,
+        instance_tracker: InstanceTracker = None,
     ):
         """Initialize OpenZIM MCP server.
 
@@ -64,36 +62,17 @@ class OpenZimMcpServer:
         )
         self.async_zim_operations = AsyncZimOperations(self.zim_operations)
 
-        # Initialize simple tools handler if in simple mode
-        self.simple_tools_handler = None
-        if config.tool_mode == TOOL_MODE_SIMPLE:
-            self.simple_tools_handler = SimpleToolsHandler(self.zim_operations)
-
-        # Initialize MCP server
+        # Initialize MCP server and register tools
         self.mcp = FastMCP(config.server_name)
-        self._register_tools()
+        register_all_tools(self)
+        logger.info("MCP tools registered successfully")
 
-        logger.info(
-            f"OpenZIM MCP server initialized successfully in {config.tool_mode} mode"
-        )
-
-        # Minimal server startup logging - detailed config available via MCP tools
+        # Minimal server startup logging
         logger.info(
             f"Server: {self.config.server_name}, "
-            f"Mode: {self.config.tool_mode}, "
             f"Directories: {len(self.config.allowed_directories)}, "
             f"Cache: {self.config.cache.enabled}"
         )
-        if config.tool_mode == TOOL_MODE_SIMPLE:
-            logger.info(
-                "Running in SIMPLE mode with 1 intelligent tool (zim_query) "
-                "plus all underlying tools"
-            )
-        else:
-            logger.debug(
-                "Use get_server_configuration() or diagnose_server_state() MCP tools "
-                "for detailed configuration and diagnostics"
-            )
 
     def _create_enhanced_error_message(
         self, operation: str, error: Exception, context: str = ""
@@ -129,7 +108,7 @@ class OpenZimMcpServer:
             details=base_message,
         )
 
-    def _format_conflict_warnings(self, conflicts: List[Dict[str, Any]]) -> str:
+    def _format_conflict_warnings(self, conflicts: List[Dict]) -> str:
         """Format conflict detection warnings for appending to results."""
         if not conflicts:
             return ""
@@ -152,18 +131,7 @@ class OpenZimMcpServer:
         return warning
 
     def _check_and_append_conflict_warnings(self, result: str) -> str:
-        """Check for conflicts and append warnings to result if found.
-
-        This helper method reduces code duplication by encapsulating the common
-        pattern of checking for instance conflicts and appending warnings to
-        operation results.
-
-        Args:
-            result: The operation result string to potentially append warnings to
-
-        Returns:
-            The result string, with conflict warnings appended if any were detected
-        """
+        """Check for conflicts and append warnings to result if found."""
         if not self.instance_tracker:
             return result
         try:
@@ -177,147 +145,6 @@ class OpenZimMcpServer:
             logger.debug(f"Failed to check for conflicts: {e}")
         return result
 
-    def _register_simple_tools(self) -> None:
-        """Register simple mode tools with underlying tools for routing."""
-
-        # Register the simple wrapper tools that LLMs will primarily use
-        @self.mcp.tool()
-        async def zim_query(
-            query: str,
-            zim_file_path: Optional[str] = None,
-            limit: Optional[int] = None,
-            offset: int = 0,
-            max_content_length: Optional[int] = None,
-        ) -> str:
-            """Query ZIM files using natural language.
-
-            This intelligent tool understands natural language queries and automatically
-            routes them to the appropriate underlying operations. It can handle:
-
-            - File listing: "list files", "what ZIM files are available"
-            - Metadata: "metadata for file.zim", "info about this ZIM"
-            - Main page: "show main page", "get home page"
-            - Namespaces: "list namespaces", "what namespaces exist"
-            - Browsing: "browse namespace C", "show articles in namespace A"
-            - Article structure: "structure of Biology", "outline of Evolution"
-            - Links: "links in Biology", "references from Evolution"
-            - Suggestions: "suggestions for bio", "autocomplete evol"
-            - Filtered search: "search evolution in namespace C"
-            - Get article: "get article Biology", "show Evolution"
-            - General search: "search for biology", "find evolution"
-            - Cross-file search: "search all files for python" → search_all
-            - Namespace walk: "walk namespace M" → walk_namespace
-            - Cache warming: "warm cache" → warm_cache
-            - Title lookup: "find article titled Photosynthesis"
-              → find_entry_by_title
-            - Random article: "random article" → get_random_entry
-            - Related articles: "articles related to Climate_Change"
-              → get_related_articles
-            - Cache stats: "cache stats" → cache_stats
-            - Cache clear: "clear cache" → cache_clear
-
-            Args:
-                query: Natural language query (REQUIRED)
-                zim_file_path: Optional ZIM file path (auto-selects if one exists)
-                limit: Max results for search/browse operations
-                offset: Optional starting offset for pagination (default: 0)
-                max_content_length: Optional maximum content length for articles
-
-            Returns:
-                Response based on the query intent
-
-            Examples:
-                - "list available ZIM files"
-                - "search for biology in wikipedia.zim"
-                - "get article Evolution"
-                - "show structure of Biology"
-                - "browse namespace C with limit 10"
-                - "search all files for python"
-                - "walk namespace M"
-                - "warm cache"
-                - "find article titled Photosynthesis"
-                - "random article"
-                - "articles related to Climate_Change"
-                - "cache stats"
-                - "clear cache"
-            """
-            try:
-                # Build options dict from parameters
-                options = {}
-                if limit is not None:
-                    options["limit"] = limit
-                if offset != 0:
-                    options["offset"] = offset
-                if max_content_length is not None:
-                    options["max_content_length"] = max_content_length
-
-                # Use simple tools handler. handle_zim_query is synchronous and
-                # performs blocking ZIM I/O, so dispatch it to a worker thread
-                # rather than blocking the asyncio event loop.
-                if self.simple_tools_handler:
-                    handler = self.simple_tools_handler
-                    return await asyncio.to_thread(
-                        handler.handle_zim_query, query, zim_file_path, options
-                    )
-                else:
-                    return "Error: Simple tools handler not initialized"
-
-            except Exception as e:
-                logger.error(f"Error in zim_query: {e}")
-                return self._create_enhanced_error_message(
-                    operation="zim_query",
-                    error=e,
-                    context=f"Query: {query}, File: {zim_file_path}",
-                )
-
-        # Also register the advanced tools so they're available for advanced use
-        # This allows the simple mode to still have access to all functionality
-        self._register_advanced_tools()
-
-        logger.info("Simple mode tools registered (zim_query + all underlying tools)")
-
-    def _register_tools(self) -> None:
-        """Register MCP tools based on configured mode."""
-        # Check tool mode and register appropriate tools
-        if self.config.tool_mode == TOOL_MODE_SIMPLE:
-            logger.info("Registering simple mode tools...")
-            self._register_simple_tools()
-            return
-
-        # Advanced mode - register all tools (existing behavior)
-        logger.info("Registering advanced mode tools...")
-        self._register_advanced_tools()
-
-    def _register_advanced_tools(self) -> None:
-        """Register advanced mode tools (all 18 tools).
-
-        Tools are organized into logical groups in separate modules:
-        - File tools: list_zim_files
-        - Search tools: search_zim_file
-        - Content tools: get_zim_entry
-        - Server tools: get_server_health, get_server_configuration,
-                       diagnose_server_state, resolve_server_conflicts
-        - Metadata tools: get_zim_metadata, get_main_page, list_namespaces
-        - Navigation tools: browse_namespace, search_with_filters,
-                           get_search_suggestions
-        - Structure tools: get_article_structure, extract_article_links,
-                          get_entry_summary, get_table_of_contents,
-                          get_binary_entry
-        """
-        register_all_tools(self)
-        logger.info("MCP tools registered successfully")
-
-    # Individual tool registration methods have been extracted to
-    # openzim_mcp/tools/ modules for better maintainability.
-    # See: file_tools.py, search_tools.py, content_tools.py,
-    #      server_tools.py, metadata_tools.py, navigation_tools.py,
-    #      structure_tools.py
-    #
-    # REMOVED: _register_file_tools, _register_search_tools,
-    #          _register_content_tools, _register_server_tools,
-    #          _register_metadata_tools, _register_navigation_tools,
-    #          _register_structure_tools (all moved to tools/ package)
-
     def run(
         self, transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     ) -> None:
@@ -329,12 +156,7 @@ class OpenZimMcpServer:
 
         Raises:
             OpenZimMcpConfigurationError: If transport type is invalid
-
-        Example:
-            >>> server = OpenZimMcpServer()
-            >>> server.run(transport="stdio")
         """
-        # Validate transport type
         if transport not in VALID_TRANSPORT_TYPES:
             raise OpenZimMcpConfigurationError(
                 f"Invalid transport type: '{transport}'. "

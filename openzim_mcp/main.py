@@ -5,8 +5,6 @@ import atexit
 import sys
 
 from .config import OpenZimMcpConfig
-from .constants import TOOL_MODE_SIMPLE, VALID_TOOL_MODES
-from .exceptions import OpenZimMcpConfigurationError
 from .instance_tracker import InstanceTracker
 from .server import OpenZimMcpServer
 
@@ -19,31 +17,19 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Simple mode (default - 1 intelligent NL tool)
   python -m openzim_mcp /path/to/zim/files
-  python -m openzim_mcp --mode simple /path/to/zim/files
-
-  # Advanced mode (all 18 tools)
-  python -m openzim_mcp --mode advanced /path/to/zim/files
+  openzim-mcp /path/to/zim/files
 
 Environment Variables:
-  OPENZIM_MCP_TOOL_MODE - Set tool mode (advanced or simple)
+  OPENZIM_MCP_CACHE__ENABLED - Enable/disable caching (true/false)
+  OPENZIM_MCP_CACHE__MAX_SIZE - Maximum cache entries
+  OPENZIM_MCP_LOGGING__LEVEL - Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         """,
     )
     parser.add_argument(
         "directories",
         nargs="+",
         help="One or more directories containing ZIM files",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=list(VALID_TOOL_MODES),
-        default=None,
-        help=(
-            f"Tool mode: 'advanced' for all 18 tools, 'simple' for 1 "
-            f"intelligent NL tool + underlying tools "
-            f"(default: {TOOL_MODE_SIMPLE}, or from OPENZIM_MCP_TOOL_MODE env var)"
-        ),
     )
 
     # Handle case where no arguments provided
@@ -54,12 +40,8 @@ Environment Variables:
     args = parser.parse_args()
 
     try:
-        # Create configuration with tool mode
-        config_kwargs = {"allowed_directories": args.directories}
-        if args.mode:
-            config_kwargs["tool_mode"] = args.mode
-
-        config = OpenZimMcpConfig(**config_kwargs)
+        # Create configuration
+        config = OpenZimMcpConfig(allowed_directories=args.directories)
 
         # Initialize instance tracker
         instance_tracker = InstanceTracker()
@@ -90,13 +72,8 @@ Environment Variables:
         # Create and run server
         server = OpenZimMcpServer(config, instance_tracker)
 
-        mode_desc = (
-            "SIMPLE mode (1 intelligent tool + all underlying tools)"
-            if config.tool_mode == TOOL_MODE_SIMPLE
-            else "ADVANCED mode (18 specialized tools)"
-        )
         print(
-            f"OpenZIM MCP server started in {mode_desc}",
+            "OpenZIM MCP server started",
             file=sys.stderr,
         )
         print(
@@ -106,9 +83,6 @@ Environment Variables:
 
         server.run(transport="stdio")
 
-    except OpenZimMcpConfigurationError as e:
-        print(f"Configuration error: {e}", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
         print(f"Server startup error: {e}", file=sys.stderr)
         sys.exit(1)

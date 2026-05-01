@@ -14,56 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def register_structure_tools(server: "OpenZimMcpServer") -> None:
-    """
-    Register article structure and content analysis tools.
+    """Register article structure and content analysis tools.
 
     Args:
         server: The OpenZimMcpServer instance to register tools on
     """
-
-    @server.mcp.tool()
-    async def get_article_structure(zim_file_path: str, entry_path: str) -> str:
-        """Extract article structure including headings, sections, and key metadata.
-
-        Note: depends on heading markup in the source HTML. ZIM builds with
-        the "mini" or "nopic" flavour often strip sub-section headings, in
-        which case this tool returns only the top-level H1. Check the ZIM's
-        Flavour metadata via get_zim_metadata() if you expect rich structure.
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Entry path, e.g., 'C/Some_Article'
-
-        Returns:
-            JSON string containing article structure
-        """
-        try:
-            # Check rate limit
-            try:
-                server.rate_limiter.check_rate_limit("get_structure")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="get article structure",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
-            # Sanitize inputs
-            zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
-            entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
-
-            # Use async operations
-            return await server.async_zim_operations.get_article_structure(
-                zim_file_path, entry_path
-            )
-
-        except Exception as e:
-            logger.error(f"Error getting article structure: {e}")
-            return server._create_enhanced_error_message(
-                operation="get article structure",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
 
     @server.mcp.tool()
     async def extract_article_links(zim_file_path: str, entry_path: str) -> str:
@@ -122,16 +77,7 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
             max_words: Maximum number of words in the summary (default: 200, max: 1000)
 
         Returns:
-            JSON string containing:
-            - title: Article title
-            - path: Entry path
-            - summary: Extracted summary text
-            - word_count: Number of words in summary
-            - is_truncated: Whether the summary was truncated
-
-        Examples:
-            - Quick overview: get_entry_summary("/path/to/wiki.zim", "Biology")
-            - Longer summary: get_entry_summary(..., "Evolution", max_words=500)
+            JSON string containing summary, title, word count, and truncation status.
         """
         try:
             # Check rate limit
@@ -182,32 +128,12 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
         Returns a structured TOC tree based on heading levels (h1-h6),
         suitable for navigation and content overview.
 
-        Note: depends on heading markup in the source HTML. ZIM builds with
-        the "mini" or "nopic" flavour often strip sub-section headings, in
-        which case this tool returns only the top-level H1 (heading_count=1).
-        If you expect rich structure, check the ZIM's Flavour metadata via
-        get_zim_metadata() first.
-
         Args:
             zim_file_path: Path to the ZIM file
             entry_path: Entry path, e.g., 'C/Some_Article'
 
         Returns:
-            JSON string containing:
-            - title: Article title
-            - path: Entry path
-            - toc: Hierarchical list of headings with children
-            - heading_count: Total number of headings
-            - max_depth: Deepest heading level used
-
-        Each TOC entry contains:
-            - level: Heading level (1-6)
-            - text: Heading text
-            - id: Anchor ID for linking
-            - children: Nested subheadings
-
-        Examples:
-            - Get TOC: get_table_of_contents("/path/to/wiki.zim", "Biology")
+            JSON string containing hierarchical TOC, heading count, and max depth.
         """
         try:
             # Check rate limit
@@ -233,151 +159,6 @@ def register_structure_tools(server: "OpenZimMcpServer") -> None:
             logger.error(f"Error getting table of contents: {e}")
             return server._create_enhanced_error_message(
                 operation="get table of contents",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
-
-    @server.mcp.tool()
-    async def get_binary_entry(
-        zim_file_path: str,
-        entry_path: str,
-        max_size_bytes: Optional[int] = None,
-        include_data: bool = True,
-    ) -> str:
-        """Retrieve binary content from a ZIM entry.
-
-        This tool returns raw binary content encoded in base64, enabling
-        integration with external tools for processing embedded media like
-        PDFs, videos, and images.
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Entry path, e.g., 'I/image.png' or 'C/document.pdf'
-            max_size_bytes: Maximum size of content to return (default: 10MB).
-                Content larger than this will return metadata only.
-            include_data: If True (default), include base64-encoded data.
-                Set to False to retrieve metadata only without the binary data.
-
-        Returns:
-            JSON string containing:
-            - path: Entry path in ZIM file
-            - title: Entry title
-            - mime_type: Content type (e.g., "application/pdf", "image/png")
-            - size: Size in bytes
-            - size_human: Human-readable size (e.g., "1.5 MB")
-            - encoding: "base64" when data is included, null otherwise
-            - data: Base64-encoded content (if include_data=True and under size limit)
-            - truncated: Boolean indicating if content exceeded size limit
-
-        Examples:
-            - Get a PDF: get_binary_entry("/path/file.zim", "I/document.pdf")
-            - Get image metadata: get_binary_entry(..., "I/logo.png", False)
-            - Large video: get_binary_entry(..., "I/video.mp4", 100000000)
-        """
-        try:
-            # Check rate limit (binary is most expensive)
-            try:
-                server.rate_limiter.check_rate_limit("get_binary_entry")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="retrieve binary entry",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
-            # Bound max_size_bytes — reading and base64-encoding is performed
-            # in memory, so an unbounded value lets a single call attempt to
-            # buffer arbitrarily large data and exhaust the process.
-            MAX_BINARY_LIMIT = 100 * 1024 * 1024  # 100 MB
-            if max_size_bytes is not None and (
-                max_size_bytes < 1 or max_size_bytes > MAX_BINARY_LIMIT
-            ):
-                return (
-                    "**Parameter Validation Error**\n\n"
-                    f"**Issue**: max_size_bytes must be between 1 and "
-                    f"{MAX_BINARY_LIMIT} bytes (100 MB), got {max_size_bytes}.\n"
-                    "**Tip**: For larger entries, retrieve the entry in "
-                    "chunks via repeated calls or use include_data=False to "
-                    "fetch metadata only."
-                )
-
-            # Sanitize inputs
-            zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
-            entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
-
-            # Use async operations
-            return await server.async_zim_operations.get_binary_entry(
-                zim_file_path, entry_path, max_size_bytes, include_data
-            )
-
-        except Exception as e:
-            logger.error(f"Error retrieving binary entry: {e}")
-            return server._create_enhanced_error_message(
-                operation="retrieve binary entry",
-                error=e,
-                context=f"File: {zim_file_path}, Entry: {entry_path}",
-            )
-
-    @server.mcp.tool()
-    async def get_related_articles(
-        zim_file_path: str,
-        entry_path: str,
-        limit: int = 10,
-        direction: str = "outbound",
-        inbound_scan_cap: int = 1000,
-        inbound_cursor: int = 0,
-    ) -> str:
-        """Find articles related to entry_path via link graph.
-
-        direction='outbound': cheap — composes extract_article_links and
-            deduplicates internal links, returning up to `limit`.
-
-        direction='inbound': bounded scan of C/ namespace up to
-            `inbound_scan_cap` entries (default 1000). **Expensive** — each
-            scanned candidate triggers a full article parse via
-            `extract_article_links` to test whether it links back to
-            entry_path. For interactive use prefer the default cap or lower;
-            for completeness paginate via `inbound_next_cursor`.
-
-        direction='both': run outbound (full), then inbound (bounded).
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Source entry, e.g. 'C/Some_Article'
-            limit: Max results per direction (1-100, default: 10)
-            direction: 'outbound' | 'inbound' | 'both'
-            inbound_scan_cap: Max entries to scan for inbound (default: 1000)
-            inbound_cursor: Resume scan from this entry ID (default: 0)
-
-        Returns:
-            JSON with outbound_results / inbound_results, scanned, cursor, done
-        """
-        try:
-            try:
-                server.rate_limiter.check_rate_limit("get_related_articles")
-            except OpenZimMcpRateLimitError as e:
-                return server._create_enhanced_error_message(
-                    operation="get related articles",
-                    error=e,
-                    context=f"Entry: {entry_path}",
-                )
-
-            zim_file_path = sanitize_input(zim_file_path, INPUT_LIMIT_FILE_PATH)
-            entry_path = sanitize_input(entry_path, INPUT_LIMIT_ENTRY_PATH)
-
-            return await server.async_zim_operations.get_related_articles(
-                zim_file_path,
-                entry_path,
-                limit,
-                direction,
-                inbound_scan_cap,
-                inbound_cursor,
-            )
-
-        except Exception as e:
-            logger.error(f"Error in get_related_articles: {e}")
-            return server._create_enhanced_error_message(
-                operation="get related articles",
                 error=e,
                 context=f"File: {zim_file_path}, Entry: {entry_path}",
             )
