@@ -23,13 +23,19 @@ class OpenZimMcpServer:
     def __init__(
         self,
         config: OpenZimMcpConfig,
+        host: str = "127.0.0.1",
+        port: int = 8000,
     ):
         """Initialize OpenZIM MCP server.
 
         Args:
             config: Server configuration
+            host: Host to bind to for HTTP transports (sse, streamable-http)
+            port: Port to bind to for HTTP transports (sse, streamable-http)
         """
         self.config = config
+        self._host = host
+        self._port = port
 
         # Setup logging
         config.setup_logging()
@@ -45,7 +51,7 @@ class OpenZimMcpServer:
         self.async_zim_operations = AsyncZimOperations(self.zim_operations)
 
         # Initialize MCP server and register tools
-        self.mcp = FastMCP(config.server_name)
+        self.mcp = FastMCP(config.server_name, host=host, port=port)
         register_all_tools(self)
         logger.info("MCP tools registered successfully")
 
@@ -74,7 +80,12 @@ class OpenZimMcpServer:
                 f"Must be one of: {', '.join(sorted(VALID_TRANSPORT_TYPES))}"
             )
 
-        logger.info(f"Starting OpenZIM MCP server with transport: {transport}")
+        # For stdio transport, host/port are ignored by MCP; for HTTP transports
+        # the host/port were already passed to FastMCP above.
+        logger.info(
+            f"Starting OpenZIM MCP server with transport: {transport}"
+            f" ({self._host}:{self._port})"
+        )
         try:
             self.mcp.run(transport=transport)
         except KeyboardInterrupt:
