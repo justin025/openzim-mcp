@@ -34,11 +34,7 @@ ARCHIVE_OPEN_TIMEOUT = 30.0
 
 
 class PaginationCursor:
-    """Utility class for creating and parsing pagination cursors.
-
-    Cursors encode pagination state as base64 tokens, making it easy for
-    clients to continue from where they left off without tracking offset manually.
-    """
+    """Utility class for creating and parsing pagination cursors."""
 
     @staticmethod
     def _encode(offset: int, limit: int, query: Optional[str] = None) -> str:
@@ -234,7 +230,7 @@ class ZimOperations:
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> str:
-        """Search within ZIM file content.
+        """Search for a string within ZIM file content.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -380,17 +376,9 @@ class ZimOperations:
     ) -> str:
         """Get detailed content of a ZIM entry with smart retrieval.
 
-        This function implements intelligent entry retrieval that automatically handles
-        path encoding inconsistencies common in ZIM files:
-
-        1. **Direct Access**: First attempts to retrieve entry using provided path
-        2. **Automatic Fallback**: If direct access fails, searches for the entry
-           using various search terms derived from the path
-        3. **Path Mapping Cache**: Caches successful path mappings for performance
-        4. **Enhanced Error Guidance**: Provides guidance when entries not found
-
-        This eliminates the need for manual search-first methodology and provides
-        transparent operation regardless of path encoding differences.
+        Automatically handles path encoding inconsistencies: attempts direct access
+        first, falls back to search-based retrieval, and caches successful path
+        mappings for performance.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -1767,395 +1755,6 @@ class ZimOperations:
 
         return result_text
 
-    def get_search_suggestions(
-        self, zim_file_path: str, partial_query: str, limit: int = 10
-    ) -> str:
-        """Get search suggestions and auto-complete for partial queries.
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            partial_query: Partial search query
-            limit: Maximum number of suggestions to return
-
-        Returns:
-            JSON string containing search suggestions
-
-        Raises:
-            OpenZimMcpFileNotFoundError: If ZIM file not found
-            OpenZimMcpArchiveError: If suggestion generation fails
-        """
-        # Validate parameters
-        if limit < 1 or limit > 50:
-            raise OpenZimMcpArchiveError("Limit must be between 1 and 50")
-        if not partial_query or len(partial_query.strip()) < 2:
-            return json.dumps(
-                {"suggestions": [], "message": "Query too short for suggestions"}
-            )
-
-        # Validate and resolve file path
-        validated_path = self.path_validator.validate_path(zim_file_path)
-        validated_path = self.path_validator.validate_zim_file(validated_path)
-
-        # Check cache
-        cache_key = f"suggestions:{validated_path}:{partial_query}:{limit}"
-        cached_result = self.cache.get(cache_key)
-        if cached_result:
-            logger.debug(f"Returning cached suggestions for: {partial_query}")
-            return cached_result  # type: ignore[no-any-return]
-
-        try:
-            with zim_archive(validated_path) as archive:
-                result = self._generate_search_suggestions(
-                    archive, partial_query, limit
-                )
-
-            # Cache the result
-            self.cache.set(cache_key, result)
-            # Parse result to get actual count for accurate logging
-            try:
-                result_data = json.loads(result)
-                actual_count = result_data.get(
-                    "count", len(result_data.get("suggestions", []))
-                )
-            except (json.JSONDecodeError, TypeError):
-                actual_count = "unknown"
-            logger.info(f"Generated {actual_count} suggestions for: {partial_query}")
-            return result
-
-        except Exception as e:
-            logger.error(f"Suggestion generation failed for {partial_query}: {e}")
-            raise OpenZimMcpArchiveError(f"Suggestion generation failed: {e}") from e
-
-    def _generate_search_suggestions(
-        self, archive: Archive, partial_query: str, limit: int
-    ) -> str:
-        """Generate search suggestions based on partial query."""
-        logger.info(
-            f"Starting suggestion generation for query: '{partial_query}', "
-            f"limit: {limit}"
-        )
-        suggestions = []
-        partial_lower = partial_query.lower().strip()
-
-        try:
-            # Strategy 1: Use search functionality as fallback since direct entry
-            # iteration
-            # may not work reliably with all ZIM file structures
-            suggestions = self._get_suggestions_from_search(
-                archive, partial_query, limit
-            )
-
-            if suggestions:
-                logger.info(
-                    f"Found {len(suggestions)} suggestions using search fallback"
-                )
-                result = {
-                    "partial_query": partial_query,
-                    "suggestions": suggestions,
-                    "count": len(suggestions),
-                }
-                return json.dumps(result, indent=2, ensure_ascii=False)
-
-            # Strategy 2: Try direct entry iteration (original approach but improved)
-            title_matches: List[Dict[str, Any]] = []
-
-            # Sample a subset of entries to avoid performance issues
-            sample_size = min(archive.entry_count, 5000)
-            step = max(1, archive.entry_count // sample_size)
-
-            logger.info(
-                f"Archive info: entry_count={archive.entry_count}, "
-                f"sample_size={sample_size}, step={step}"
-            )
-
-            entries_processed = 0
-            entries_with_content = 0
-
-            for entry_id in range(0, archive.entry_count, step):
-                try:
-                    entry = archive._get_entry_by_id(entry_id)
-                    title = entry.title or ""
-                    path = entry.path or ""
-
-                    entries_processed += 1
-
-                    # Log first few entries for debugging
-                    if entries_processed <= 5:
-                        logger.debug(
-                            f"Entry {entry_id}: title='{title}', path='{path}'"
-                        )
-
-                    # Skip entries without meaningful titles
-                    if not title.strip() or len(title.strip()) < 2:
-                        continue
-
-                    # Skip system/metadata entries (common patterns)
-                    if (
-                        path.startswith("M/")
-                        or path.startswith("X/")
-                        or path.startswith("-/")
-                        or title.startswith("File:")
-                        or title.startswith("Category:")
-                        or title.startswith("Template:")
-                    ):
-                        continue
-
-                    entries_with_content += 1
-
-                    title_lower = title.lower()
-
-                    # Prioritize titles that start with the query
-                    if title_lower.startswith(partial_lower):
-                        title_matches.append(
-                            {
-                                "suggestion": title,
-                                "path": path,
-                                "type": "title_start_match",
-                                "score": 100,
-                            }
-                        )
-                        logger.debug(f"Found start match: '{title}'")
-                    # Then titles that contain the query
-                    elif partial_lower in title_lower:
-                        title_matches.append(
-                            {
-                                "suggestion": title,
-                                "path": path,
-                                "type": "title_contains_match",
-                                "score": 50,
-                            }
-                        )
-                        logger.debug(f"Found contains match: '{title}'")
-
-                    # Stop if we have enough matches
-                    if len(title_matches) >= limit * 2:
-                        logger.info(
-                            f"Found enough matches ({len(title_matches)}), "
-                            "stopping search"
-                        )
-                        break
-
-                except Exception as e:
-                    logger.warning(
-                        f"Error processing entry {entry_id} for suggestions: {e}"
-                    )
-                    continue
-
-            logger.info(
-                f"Processing complete: processed={entries_processed}, "
-                f"with_content={entries_with_content}, matches={len(title_matches)}"
-            )
-
-            # Sort by score and title length (prefer shorter, more relevant titles)
-            title_matches.sort(key=lambda x: (-x["score"], len(x["suggestion"])))
-
-            # Take the best matches
-            for match in title_matches[:limit]:
-                suggestions.append(
-                    {
-                        "text": match["suggestion"],
-                        "path": match["path"],
-                        "type": match["type"],
-                    }
-                )
-
-        except Exception as e:
-            logger.error(f"Error generating suggestions: {e}")
-            return json.dumps(
-                {"suggestions": [], "error": f"Error generating suggestions: {e}"}
-            )
-
-        result = {
-            "partial_query": partial_query,
-            "suggestions": suggestions[:limit],
-            "count": len(suggestions[:limit]),
-        }
-
-        return json.dumps(result, indent=2, ensure_ascii=False)
-
-    def _get_suggestions_from_search(
-        self, archive: Archive, partial_query: str, limit: int
-    ) -> List[Dict[str, Any]]:
-        """Get suggestions by using the search functionality as fallback."""
-        suggestions: list[dict[str, str]] = []
-
-        try:
-            # Use the working search functionality to find relevant articles
-            from libzim import Query, Searcher
-
-            # Create a search query - try both exact and wildcard approaches
-            query_obj = Query().set_query(partial_query)
-            searcher = Searcher(archive)
-            search = searcher.search(query_obj)
-
-            total_results = search.getEstimatedMatches()
-            logger.debug(f"Search found {total_results} matches for '{partial_query}'")
-
-            if total_results == 0:
-                return suggestions
-
-            # Get a reasonable number of search results to extract titles from
-            # Get more results to filter from
-            max_results = min(total_results, limit * 5)
-            result_entries = list(search.getResults(0, max_results))
-
-            seen_titles = set()
-
-            for entry_id in result_entries:
-                try:
-                    entry = archive.get_entry_by_path(entry_id)
-                    title = entry.title or ""
-                    path = entry.path or ""
-
-                    if not title.strip() or title in seen_titles:
-                        continue
-
-                    # Skip system/metadata entries
-                    if (
-                        title.startswith("File:")
-                        or title.startswith("Category:")
-                        or title.startswith("Template:")
-                        or title.startswith("User:")
-                        or title.startswith("Wikipedia:")
-                        or title.startswith("Help:")
-                    ):
-                        continue
-
-                    seen_titles.add(title)
-                    title_lower = title.lower()
-                    partial_lower = partial_query.lower()
-
-                    # Prioritize titles that start with the query
-                    if title_lower.startswith(partial_lower):
-                        suggestions.append(
-                            {"text": title, "path": path, "type": "search_start_match"}
-                        )
-                    # Then titles that contain the query
-                    elif partial_lower in title_lower:
-                        suggestions.append(
-                            {
-                                "text": title,
-                                "path": path,
-                                "type": "search_contains_match",
-                            }
-                        )
-
-                    # Stop when we have enough suggestions
-                    if len(suggestions) >= limit:
-                        break
-
-                except Exception as e:
-                    logger.warning(f"Error processing search result {entry_id}: {e}")
-                    continue
-
-            # Sort suggestions to prioritize better matches
-            suggestions.sort(
-                key=lambda x: (
-                    (
-                        0 if x["type"] == "search_start_match" else 1
-                    ),  # Start matches first
-                    len(x["text"]),  # Shorter titles first
-                )
-            )
-
-            return suggestions[:limit]
-
-        except Exception as e:
-            logger.error(f"Error in search-based suggestions: {e}")
-            return []
-
-    def get_article_structure(self, zim_file_path: str, entry_path: str) -> str:
-        """Extract article structure including headings, sections, and key metadata.
-
-        Args:
-            zim_file_path: Path to the ZIM file
-            entry_path: Entry path, e.g., 'C/Some_Article'
-
-        Returns:
-            JSON string containing article structure
-
-        Raises:
-            OpenZimMcpFileNotFoundError: If ZIM file not found
-            OpenZimMcpArchiveError: If structure extraction fails
-        """
-        # Validate and resolve file path
-        validated_path = self.path_validator.validate_path(zim_file_path)
-        validated_path = self.path_validator.validate_zim_file(validated_path)
-
-        # Check cache
-        cache_key = f"structure:{validated_path}:{entry_path}"
-        cached_result = self.cache.get(cache_key)
-        if cached_result:
-            logger.debug(f"Returning cached structure for: {entry_path}")
-            return cached_result  # type: ignore[no-any-return]
-
-        try:
-            with zim_archive(validated_path) as archive:
-                result = self._extract_article_structure(archive, entry_path)
-
-            # Cache the result
-            self.cache.set(cache_key, result)
-            logger.info(f"Extracted structure for: {entry_path}")
-            return result
-
-        except Exception as e:
-            logger.error(f"Structure extraction failed for {entry_path}: {e}")
-            raise OpenZimMcpArchiveError(f"Structure extraction failed: {e}") from e
-
-    def _extract_article_structure(self, archive: Archive, entry_path: str) -> str:
-        """Extract structure from article content."""
-        try:
-            entry, entry_path = self._resolve_entry_with_fallback(archive, entry_path)
-            title = entry.title or "Untitled"
-
-            # Get raw content
-            item = entry.get_item()
-            mime_type = item.mimetype or ""
-            raw_content = bytes(item.content).decode("utf-8", errors="replace")
-
-            structure: Dict[str, Any] = {
-                "title": title,
-                "path": entry_path,
-                "content_type": mime_type,
-                "headings": [],
-                "sections": [],
-                "metadata": {},
-                "word_count": 0,
-                "character_count": len(raw_content),
-            }
-
-            # Process HTML content for structure
-            if mime_type.startswith("text/html"):
-                structure.update(
-                    self.content_processor.extract_html_structure(raw_content)
-                )
-            elif mime_type.startswith("text/"):
-                # For plain text, try to extract basic structure. Re-encode the
-                # already-decoded raw_content rather than re-reading item.content,
-                # which can trigger another full decompression from the archive.
-                plain_text = self.content_processor.process_mime_content(
-                    raw_content.encode("utf-8"), mime_type
-                )
-                structure["word_count"] = len(plain_text.split())
-                structure["sections"] = [
-                    {"title": "Content", "content_preview": plain_text[:500]}
-                ]
-            else:
-                structure["sections"] = [
-                    {
-                        "title": "Non-text content",
-                        "content_preview": f"({mime_type} content)",
-                    }
-                ]
-
-            return json.dumps(structure, indent=2, ensure_ascii=False)
-
-        except Exception as e:
-            logger.error(f"Error extracting structure for {entry_path}: {e}")
-            raise OpenZimMcpArchiveError(
-                f"Failed to extract article structure: {e}"
-            ) from e
-
     def extract_article_links(self, zim_file_path: str, entry_path: str) -> str:
         """Extract internal and external links from an article.
 
@@ -2245,9 +1844,8 @@ class ZimOperations:
     ) -> str:
         """Retrieve binary content from a ZIM entry.
 
-        This method returns raw binary content encoded in base64, enabling
-        integration with external tools for processing embedded media like
-        PDFs, videos, and images.
+        Returns raw binary content encoded in base64 for processing embedded
+        media like PDFs, videos, and images.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -2391,9 +1989,8 @@ class ZimOperations:
     ) -> str:
         """Get a concise summary of an article without returning the full content.
 
-        This method extracts the opening paragraph(s) or introduction section,
-        providing a quick overview of the article content. Useful for getting
-        context without loading full articles.
+        Extracts the opening paragraph(s) or introduction section for a quick
+        overview of the article content.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -2601,8 +2198,7 @@ class ZimOperations:
     def get_table_of_contents(self, zim_file_path: str, entry_path: str) -> str:
         """Extract a hierarchical table of contents from an article.
 
-        Returns a structured TOC tree based on heading levels (h1-h6),
-        suitable for navigation and content overview.
+        Returns a structured TOC tree based on heading levels (h1-h6).
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -2778,19 +2374,7 @@ class ZimOperations:
     # ------------------------------------------------------------------
 
     def warm_cache(self, zim_file_path: str) -> str:
-        """Pre-populate the cache with frequently-needed lookups for a ZIM file.
-
-        Calls list_zim_files, get_zim_metadata, list_namespaces, and
-        get_main_page so subsequent queries hit cache. Each step is
-        best-effort — a failure on one (e.g. main page missing) doesn't
-        block the others.
-
-        Args:
-            zim_file_path: Path to the ZIM file
-
-        Returns:
-            JSON summary of which lookups succeeded and which were skipped
-        """
+        """Pre-populate the cache with frequently-needed lookups for a ZIM file."""
         validated = self.path_validator.validate_path(zim_file_path)
         validated = self.path_validator.validate_zim_file(validated)
 
@@ -2827,11 +2411,9 @@ class ZimOperations:
     ) -> str:
         """Walk every entry in a namespace by entry ID, with cursor pagination.
 
-        Unlike browse_namespace (which samples), this iterates the archive
-        deterministically from ``cursor`` onward and returns up to ``limit``
-        entries that belong to the requested namespace. Pair the returned
-        ``next_cursor`` with a follow-up call to walk the rest. Set to None
-        when iteration is complete.
+        Iterates the archive deterministically from ``cursor`` onward and
+        returns up to ``limit`` entries belonging to the requested namespace.
+        Use ``next_cursor`` from the response for pagination.
 
         Args:
             zim_file_path: Path to the ZIM file
@@ -2909,20 +2491,7 @@ class ZimOperations:
         query: str,
         limit_per_file: int = 5,
     ) -> str:
-        """Search every ZIM file in allowed directories and return merged results.
-
-        Useful when the model doesn't know which ZIM file holds the
-        information it needs. Skips files that can't be searched (corrupt,
-        no full-text index) without aborting the rest.
-
-        Args:
-            query: Search query
-            limit_per_file: Maximum hits to return per ZIM file (1–50, default 5)
-
-        Returns:
-            JSON with per-file result groups and a flat ``hits`` list sorted
-            by file then rank
-        """
+        """Search every ZIM file in allowed directories and return merged results."""
         if not query or not query.strip():
             raise OpenZimMcpValidationError(
                 "Input is empty or contains only whitespace/control characters"
@@ -2954,18 +2523,11 @@ class ZimOperations:
                             "zim_file_path": path,
                             "name": file_info.get("name"),
                             "result": result_text,
-                            "has_hits": has_hits,
                         }
                     )
             except Exception as e:
                 logger.debug(f"search_all: skipped {path}: {e}")
-                per_file.append(
-                    {
-                        "zim_file_path": path,
-                        "name": file_info.get("name"),
-                        "error": str(e),
-                    }
-                )
+                pass
 
         return json.dumps(
             {
@@ -2989,13 +2551,7 @@ class ZimOperations:
         cross_file: bool = False,
         limit: int = 10,
     ) -> str:
-        """Resolve a title or partial title to one or more entry paths.
-
-        Implementation order:
-          1. Direct path probe in C/ namespace for normalized title (fast path).
-          2. libzim suggestion search (title-indexed) — primary fallback.
-          3. Return ranked list with score.
-        """
+        """Resolve a title or partial title to one or more entry paths."""
         if not title or not title.strip():
             raise OpenZimMcpValidationError(
                 "Input is empty or contains only whitespace/control characters"
@@ -3087,12 +2643,7 @@ class ZimOperations:
         )
 
     def get_random_entry(self, zim_file_path: str, namespace: str = "C") -> str:
-        """Return one random entry from the ZIM, optionally namespace-constrained.
-
-        Wraps libzim archive.get_random_entry(). When namespace is set,
-        retries up to RANDOM_ENTRY_MAX_RETRIES times to land in that
-        namespace before giving up.
-        """
+        """Return one random entry from the ZIM, optionally namespace-constrained."""
         validated = self.path_validator.validate_path(zim_file_path)
         validated = self.path_validator.validate_zim_file(validated)
 

@@ -26,8 +26,6 @@ def register_file_tools(server: "OpenZimMcpServer") -> None:
         matching the query string. Case-insensitive partial match.
 
         Use this instead of list_zim_files when you know part of the file name.
-        For example, searching "nginx" returns only nginx-related archives
-        instead of listing all 200 ZIM files.
 
         Args:
             query: Search keyword to match against ZIM file names
