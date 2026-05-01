@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cameronrye/openzim-mcp/main/website/assets/logo.svg" alt="OpenZIM MCP Logo" width="120" height="120">
+  <img src="https://raw.githubusercontent.com/justin025/openzim-mcp/main/website/assets/logo.svg" alt="OpenZIM MCP Logo" width="120" height="120">
 </p>
 
 <h1 align="center">OpenZIM MCP Server</h1>
@@ -8,57 +8,9 @@
   <strong>Transform static ZIM archives into dynamic knowledge engines for AI models</strong>
 </p>
 
-<p align="center">
-  <a href="https://github.com/cameronrye/openzim-mcp/actions/workflows/test.yml"><img src="https://github.com/cameronrye/openzim-mcp/workflows/CI/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/cameronrye/openzim-mcp"><img src="https://codecov.io/gh/cameronrye/openzim-mcp/branch/main/graph/badge.svg" alt="codecov"></a>
-  <a href="https://github.com/cameronrye/openzim-mcp/actions/workflows/codeql.yml"><img src="https://github.com/cameronrye/openzim-mcp/workflows/CodeQL%20Security%20Analysis/badge.svg" alt="CodeQL"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=cameronrye_openzim-mcp"><img src="https://sonarcloud.io/api/project_badges/measure?project=cameronrye_openzim-mcp&metric=security_rating" alt="Security Rating"></a>
-</p>
-
-<p align="center">
-  <a href="https://badge.fury.io/py/openzim-mcp"><img src="https://badge.fury.io/py/openzim-mcp.svg" alt="PyPI version"></a>
-  <a href="https://pypi.org/project/openzim-mcp/"><img src="https://img.shields.io/pypi/pyversions/openzim-mcp" alt="PyPI - Python Version"></a>
-  <a href="https://pypi.org/project/openzim-mcp/"><img src="https://img.shields.io/pypi/dm/openzim-mcp" alt="PyPI - Downloads"></a>
-  <a href="https://github.com/cameronrye/openzim-mcp/releases"><img src="https://img.shields.io/github/v/release/cameronrye/openzim-mcp" alt="GitHub release"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black"></a>
-  <a href="https://pycqa.github.io/isort/"><img src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336" alt="Imports: isort"></a>
-  <a href="https://mypy-lang.org/"><img src="https://img.shields.io/badge/type%20checked-mypy-blue" alt="Type checked: mypy"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/cameronrye/openzim-mcp/issues"><img src="https://img.shields.io/github/issues/cameronrye/openzim-mcp" alt="GitHub issues"></a>
-  <a href="https://github.com/cameronrye/openzim-mcp/pulls"><img src="https://img.shields.io/github/issues-pr/cameronrye/openzim-mcp" alt="GitHub pull requests"></a>
-  <a href="https://github.com/cameronrye/openzim-mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/cameronrye/openzim-mcp" alt="GitHub contributors"></a>
-  <a href="https://github.com/cameronrye/openzim-mcp/stargazers"><img src="https://img.shields.io/github/stars/cameronrye/openzim-mcp?style=social" alt="GitHub stars"></a>
-</p>
-
 ---
 
-> 🆕 **NEW in v0.9.0: Multi-Archive Search & Prompts!** Search across every ZIM file at once with `search_all`, invoke pre-built workflows with `/research` and `/summarize`, and resolve titles to paths instantly with `find_entry_by_title`. [Learn more →](#whats-new-in-v090)
-
-> **Dual Mode Support:** Choose between Simple mode (1 intelligent natural language tool, default) or Advanced mode (26 specialized tools, plus 3 MCP prompts and 2 MCP resources) to match your LLM's capabilities.
-
-## Built for LLM Intelligence
-
-**OpenZIM MCP transforms static ZIM archives into dynamic knowledge engines for Large Language Models.** Unlike basic file readers, this tool provides *intelligent, structured access* that LLMs need to effectively navigate and understand vast knowledge repositories.
-
- **Why LLMs Love OpenZIM MCP:**
-
-- **Smart Navigation**: Browse by namespace (articles, metadata, media) instead of blind searching
-- **Context-Aware Discovery**: Get article structure, relationships, and metadata for deeper understanding
-- **Intelligent Search**: Advanced filtering, auto-complete suggestions, and relevance-ranked results
-- **Performance Optimized**: Cached operations and pagination prevent timeouts on massive archives
-- **Relationship Mapping**: Extract internal/external links to understand content connections
-
-Whether you're building a research assistant, knowledge chatbot, or content analysis system, OpenZIM MCP gives your LLM the structured access patterns it needs to unlock the full potential of offline knowledge archives. No more fumbling through raw text dumps!
-
 **OpenZIM MCP** is a modern, secure, and high-performance MCP (Model Context Protocol) server that enables AI models to access and search [ZIM format](https://en.wikipedia.org/wiki/ZIM_(file_format)) knowledge bases offline.
-
-[ZIM](https://en.wikipedia.org/wiki/ZIM_(file_format)) (Zeno IMproved) is an open file format developed by the [openZIM project](https://openzim.org/), designed specifically for offline storage and access to website content. The format supports high compression rates using Zstandard compression (default since 2021) and enables fast full-text searching, making it ideal for storing entire Wikipedia content and other large reference materials in relatively compact files. The openZIM project is sponsored by Wikimedia CH and supported by the Wikimedia Foundation, ensuring the format's continued development and adoption for offline knowledge access, especially in environments without reliable internet connectivity.
 
 ## Features
 
@@ -125,20 +77,19 @@ First use of the MCP **resources** primitive — your client's resource browser 
 pip install openzim-mcp
 ```
 
-### Development Installation
-
-For contributors and developers:
+### Installation from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/cameronrye/openzim-mcp.git
 cd openzim-mcp
 
-# Install dependencies
-uv sync
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-# Install development dependencies
-uv sync --dev
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Prepare ZIM Files
@@ -152,6 +103,13 @@ mkdir ~/zim-files
 
 ### Running the Server
 
+Activate your virtual environment first:
+```bash
+source venv/bin/activate
+```
+
+Then run:
+
 ```bash
 # Simple mode (default) - 1 intelligent natural language tool
 openzim-mcp /path/to/zim/files
@@ -160,13 +118,6 @@ python -m openzim_mcp /path/to/zim/files
 # Advanced mode - all 26 specialized tools
 openzim-mcp --mode advanced /path/to/zim/files
 python -m openzim_mcp --mode advanced /path/to/zim/files
-
-# For development (from source)
-uv run python -m openzim_mcp /path/to/zim/files
-uv run python -m openzim_mcp --mode advanced /path/to/zim/files
-
-# Or using make (development)
-make run ZIM_DIR=/path/to/zim/files
 ```
 
 ### Tool Modes
@@ -222,12 +173,8 @@ For development (from source):
 ```json
 {
   "openzim-mcp": {
-    "command": "uv",
+    "command": "python",
     "args": [
-      "--directory",
-      "/path/to/openzim-mcp",
-      "run",
-      "python",
       "-m",
       "openzim_mcp",
       "/path/to/zim/files"
@@ -236,93 +183,17 @@ For development (from source):
 }
 ```
 
-## Development
-
 ### Running Tests
 
 ```bash
 # Run all tests
-make test
+python -m pytest
 
 # Run tests with coverage
-make test-cov
+python -m pytest --cov=openzim_mcp --cov-report=html
 
 # Run specific test file
-uv run pytest tests/test_security.py -v
-
-# Run tests with ZIM test data (comprehensive testing)
-make test-with-zim-data
-
-# Run integration tests only
-make test-integration
-
-# Run tests that require ZIM test data
-make test-requires-zim-data
-```
-
-### ZIM Test Data Integration
-
-OpenZIM MCP integrates with the official [zim-testing-suite](https://github.com/openzim/zim-testing-suite) for comprehensive testing with real ZIM files:
-
-```bash
-# Download essential test files (basic testing)
-make download-test-data
-
-# Download all test files (comprehensive testing)
-make download-test-data-all
-
-# List available test files
-make list-test-data
-
-# Clean downloaded test data
-make clean-test-data
-```
-
-The test data includes:
-
-- **Basic files**: Small ZIM files for essential testing
-- **Real content**: Actual Wikipedia/Wikibooks content for integration testing
-- **Invalid files**: Malformed ZIM files for error handling testing
-- **Special cases**: Embedded content, split files, and edge cases
-
-Test files are automatically organized by category and priority level.
-
-### Code Quality
-
-```bash
-# Format code
-make format
-
-# Run linting
-make lint
-
-# Type checking
-make type-check
-
-# Run all checks
-make check
-```
-
-### Project Structure
-
-```text
-openzim-mcp/
-├── openzim_mcp/             # Main package
-│   ├── __init__.py        # Package initialization
-│   ├── __main__.py        # Module entry point
-│   ├── main.py            # Main entry point
-│   ├── server.py          # MCP server implementation
-│   ├── config.py          # Configuration management
-│   ├── security.py        # Security and validation
-│   ├── cache.py           # Caching functionality
-│   ├── content_processor.py # Content processing
-│   ├── zim_operations.py  # ZIM file operations
-│   ├── exceptions.py      # Custom exceptions
-│   └── constants.py       # Application constants
-├── tests/                 # Test suite
-├── pyproject.toml        # Project configuration
-├── Makefile              # Development commands
-└── README.md             # This file
+python -m pytest tests/test_security.py -v
 ```
 
 ---
@@ -568,45 +439,6 @@ Found 1 ZIM files in 1 directories:
 }
 ```
 
-Response:
-
-```plain
-Found 51 matches for "biology", showing 1-3:
-
-## 1. Taxonomy (biology)
-Path: Taxonomy_(biology)
-Snippet: #  Taxonomy (biology) Part of a series on
----
-Evolutionary biology
-Darwin's finches by John Gould
-
-  * Index
-  * Introduction
-  * [Main](Evolution "Evolution")
-  * Outline
-
-## 2. Protein
-Path: Protein
-Snippet: #  Protein A representation of the 3D structure of the protein myoglobin showing turquoise α-helices. This protein was the first to have its structure solved by X-ray crystallography. Toward the right-center among the coils, a prosthetic group called a heme group (shown in gray) with a bound oxygen molecule (red).
-
-## 3. Ant
-Path: Ant
-Snippet: #  Ant Ants
-Temporal range: Late Aptian – Present
----
-Fire ants
-[Scientific classification](Taxonomy_\(biology\) "Taxonomy \(biology\)")
-Kingdom:  | [Animalia](Animal "Animal")
-Phylum:  | [Arthropoda](Arthropod "Arthropod")
-Class:  | [Insecta](Insect "Insect")
-Order:  | Hymenoptera
-Infraorder:  | Aculeata
-Superfamily:  |
-Latreille, 1809[1]
-Family:  |
-Latreille, 1809
-```
-
 ### Getting ZIM entries
 
 ```json
@@ -619,25 +451,6 @@ Latreille, 1809
 }
 ```
 
-Response:
-
-```plain
-# Protein
-
-Path: Protein
-Type: text/html
-## Content
-
-#  Protein
-
-A representation of the 3D structure of the protein myoglobin showing turquoise α-helices. This protein was the first to have its structure solved by X-ray crystallography. Toward the right-center among the coils, a prosthetic group called a heme group (shown in gray) with a bound oxygen molecule (red).
-
-**Proteins** are large biomolecules and macromolecules that comprise one or more long chains of amino acid residues. Proteins perform a vast array of functions within organisms, including catalysing metabolic reactions, DNA replication, responding to stimuli, providing structure to cells and organisms, and transporting molecules from one location to another. Proteins differ from one another primarily in their sequence of amino acids, which is dictated by the nucleotide sequence of their genes, and which usually results in protein folding into a specific 3D structure that determines its activity.
-
-A linear chain of amino acid residues is called a polypeptide. A protein contains at least one long polypeptide. Short polypeptides, containing less than 20–30 residues, are rarely considered to be proteins and are commonly called peptides.
-
-... [Content truncated, total of 56,202 characters, only showing first 1,500 characters] ...
-```
 
 ### Smart Retrieval in Action
 
@@ -653,25 +466,6 @@ A linear chain of amino acid residues is called a polypeptide. A protein contain
 }
 ```
 
-Response (showing smart retrieval working):
-
-```plain
-# Test Article
-
-Requested Path: A/Test Article
-Actual Path: A/Test_Article
-Type: text/html
-
-## Content
-
-# Test Article
-
-This article demonstrates the smart retrieval system automatically handling
-path encoding differences. The system tried "A/Test Article" directly,
-then automatically searched and found "A/Test_Article".
-
-... [Content continues] ...
-```
 
 ### get_server_health - Get server health and statistics
 
@@ -795,22 +589,6 @@ Results of conflict resolution including cleanup actions and recommendations.
 }
 ```
 
-Response:
-
-```plain
-Found 39 matches for "computer", showing 1-2:
-
-## 1. Video game
-Path: Video_game
-Snippet: #  Video game First-generation _Pong_ console at the Computerspielemuseum Berlin
----
-Platforms
-
-## 2. Protein
-Path: Protein
-Snippet: #  Protein A representation of the 3D structure of the protein myoglobin showing turquoise α-helices. This protein was the first to have its structure solved by X-ray crystallography. Toward the right-center among the coils, a prosthetic group called a heme group (shown in gray) with a bound oxygen molecule (red).
-```
-
 **Getting detailed content:**
 
 ```json
@@ -822,36 +600,6 @@ Snippet: #  Protein A representation of the 3D structure of the protein myoglobi
     "max_content_length": 1500
   }
 }
-```
-
-Response:
-
-```plain
-# Evolution
-
-Path: Evolution
-Type: text/html
-## Content
-
-#  Evolution
-
-Part of the Biology series on
----
-****
-Mechanisms and processes
-
-  * Adaptation
-  * Genetic drift
-  * Gene flow
-  * History of life
-  * Maladaptation
-  * Mutation
-  * Natural selection
-  * Neutral theory
-  * Population genetics
-  * Speciation
-
-... [Content truncated, total of 110,237 characters, only showing first 1,500 characters] ...
 ```
 
 ### Advanced Knowledge Retrieval Examples
@@ -1324,54 +1072,6 @@ export OPENZIM_MCP_SERVER_NAME=my_openzim_mcp_server
 
 ---
 
-## Testing
-
-The project includes comprehensive testing with 80%+ coverage using both mock data and real ZIM files:
-
-### Test Categories
-
-- **Unit Tests**: Individual component testing with mocks
-- **Integration Tests**: End-to-end functionality testing with real ZIM files
-- **Security Tests**: Path traversal and input validation testing
-- **Performance Tests**: Cache and resource management testing
-- **Format Compatibility**: Testing with various ZIM file formats and versions
-- **Error Handling**: Testing with invalid and malformed ZIM files
-
-### Test Infrastructure
-
-OpenZIM MCP uses a hybrid testing approach:
-
-1. **Mock-based tests**: Fast unit tests using mocked libzim components
-2. **Real ZIM file tests**: Integration tests using official zim-testing-suite files
-3. **Automatic test data management**: Download and organize test files as needed
-
-### Test Data Sources
-
-- **Built-in test data**: Basic test files included in the repository
-- **zim-testing-suite integration**: Official test files from the OpenZIM project
-- **Environment variable support**: `ZIM_TEST_DATA_DIR` for custom test data locations
-
-```bash
-# Run tests with coverage report
-make test-cov
-
-# View coverage report
-open htmlcov/index.html
-
-# Run comprehensive tests with real ZIM files
-make test-with-zim-data
-```
-
-### Test Markers
-
-Tests are organized with pytest markers:
-
-- `@pytest.mark.requires_zim_data`: Tests requiring ZIM test data files
-- `@pytest.mark.integration`: Integration tests
-- `@pytest.mark.slow`: Long-running tests
-
----
-
 ## Monitoring
 
 OpenZIM MCP provides built-in monitoring capabilities:
@@ -1380,95 +1080,3 @@ OpenZIM MCP provides built-in monitoring capabilities:
 - **Cache Metrics**: Cache hit rates and performance statistics
 - **Structured Logging**: JSON-formatted logs for easy parsing
 - **Error Tracking**: Comprehensive error logging and tracking
-
----
-
-## Versioning
-
-This project uses [Semantic Versioning](https://semver.org/) with automated version management through [release-please](https://github.com/googleapis/release-please).
-
-### Automated Releases
-
-Version bumps and releases are automated based on [Conventional Commits](https://www.conventionalcommits.org/):
-
-- **`feat:`** - New features (minor version bump)
-- **`fix:`** - Bug fixes (patch version bump)
-- **`feat!:`** or **`BREAKING CHANGE:`** - Breaking changes (major version bump)
-- **`perf:`** - Performance improvements (patch version bump)
-- **`docs:`**, **`style:`**, **`refactor:`**, **`test:`**, **`chore:`** - No version bump
-
-### Release Process
-
-The project uses an **improved, consolidated release system** with automatic validation:
-
-1. **Automatic** (Recommended): Push conventional commits → Release Please creates PR → Merge PR → Automatic release
-2. **Manual**: Use GitHub Actions UI for direct control over releases
-3. **Emergency**: Push tags directly for critical fixes
-
-**Key Features:**
-
-- **Zero-touch releases** from main branch
-- **Automatic version synchronization** validation
-- **Comprehensive testing** before every release
-- **Improved error handling** and rollback capabilities
-- **Branch protection** prevents broken releases
-
-For detailed instructions, see [Release Process Guide](docs/RELEASE_PROCESS_GUIDE.md).
-
-### Commit Message Format
-
-```
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Examples:**
-
-```bash
-feat: add search suggestions endpoint
-fix: resolve path traversal vulnerability
-feat!: change API response format
-docs: update installation instructions
-```
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`make check`)
-5. **Use conventional commit messages** (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add type hints to all functions
-- Write tests for new functionality
-- Update documentation as needed
-- **Use conventional commit messages** for automatic versioning
-- Ensure all tests pass before submitting
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- [Kiwix](https://www.kiwix.org/) for the ZIM format and libzim library
-- [MCP](https://modelcontextprotocol.io/) for the Model Context Protocol
-- The open-source community for the excellent libraries used in this project
-
----
-
-Made with ❤️ by [Cameron Rye](https://rye.dev)
