@@ -14,7 +14,6 @@ from .navigation_tools import register_navigation_tools
 from .prompts import register_prompts
 from .resource_tools import register_resources
 from .search_tools import register_search_tools
-from .server_tools import register_server_tools
 from .structure_tools import register_structure_tools
 
 if TYPE_CHECKING:
@@ -25,7 +24,6 @@ __all__ = [
     "register_file_tools",
     "register_search_tools",
     "register_content_tools",
-    "register_server_tools",
     "register_metadata_tools",
     "register_navigation_tools",
     "register_structure_tools",
@@ -46,7 +44,6 @@ def register_all_tools(server: "OpenZimMcpServer") -> None:
     register_file_tools(server)
     register_search_tools(server)
     register_content_tools(server)
-    register_server_tools(server)
     register_metadata_tools(server)
     register_navigation_tools(server)
     register_structure_tools(server)

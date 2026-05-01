@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/justin025/openzim-mcp/main/website/assets/logo.svg" alt="OpenZIM MCP Logo" width="120" height="120">
+  <img src="https://raw.githubusercontent.com/cameronrye/openzim-mcp/main/website/assets/logo.svg" alt="OpenZIM MCP Logo" width="120" height="120">
 </p>
 
 <h1 align="center">OpenZIM MCP Server</h1>
@@ -14,7 +14,7 @@
 
 ## Features
 
-- **Dual Mode Support**: Choose between Simple mode (1 intelligent natural language tool, default) or Advanced mode (26 specialized tools)
+- **Dual Mode Support**: Choose between Simple mode (1 intelligent natural language tool, default) or Advanced mode (22 specialized tools)
 - **Multi-Archive Search**: 🆕 Search every ZIM file at once with `search_all` — no need to know which archive holds the answer
 - **MCP Prompts**: 🆕 Pre-built workflow slash commands (`/research`, `/summarize`, `/explore`) that orchestrate multi-step ZIM operations
 - **Find Entries by Title**: 🆕 Resolve titles to entry paths instantly with `find_entry_by_title` — case-insensitive, optionally cross-file
@@ -49,10 +49,9 @@ Three pre-built workflows you can invoke as slash commands in MCP-aware clients:
 ### Power-user tools
 
 - `walk_namespace` — deterministic cursor-paginated namespace iteration (vs. `browse_namespace` which samples)
-- `warm_cache` — pre-populate cache for a ZIM file before a long session
 - `get_random_entry` — sample one random article (great with `/explore`)
 - `get_related_articles` — link-graph nearest neighbours (outbound, inbound, or both)
-- `cache_stats` / `cache_clear` — inspect and manage the in-memory cache
+
 
 ### MCP Resources
 
@@ -115,7 +114,7 @@ Then run:
 openzim-mcp /path/to/zim/files
 python -m openzim_mcp /path/to/zim/files
 
-# Advanced mode - all 26 specialized tools
+# Advanced mode - all 22 specialized tools
 openzim-mcp --mode advanced /path/to/zim/files
 python -m openzim_mcp --mode advanced /path/to/zim/files
 ```
@@ -125,7 +124,7 @@ python -m openzim_mcp --mode advanced /path/to/zim/files
 OpenZIM MCP supports two modes:
 
 - **Simple Mode** (default): Provides 1 intelligent tool (`zim_query`) that accepts natural language queries
-- **Advanced Mode**: Exposes all 26 specialized MCP tools for maximum control
+- **Advanced Mode**: Exposes all 22 specialized MCP tools for maximum control
 
 See [Simple Mode Guide](docs/SIMPLE_MODE_GUIDE.md) for detailed information.
 
@@ -467,113 +466,6 @@ Found 1 ZIM files in 1 directories:
 ```
 
 
-### get_server_health - Get server health and statistics
-
-No parameters required.
-
-**Returns:**
-
-- Server status and performance metrics
-- Cache statistics
-- Configuration information
-- Instance tracking information
-- Conflict detection results
-
-**Example Response:**
-
-```json
-{
-  "status": "healthy",
-  "server_name": "openzim-mcp",
-  "allowed_directories": 1,
-  "cache": {
-    "enabled": true,
-    "size": 1,
-    "max_size": 100,
-    "ttl_seconds": 3600
-  },
-  "instance_tracking": {
-    "active_instances": 1,
-    "conflicts_detected": 0
-  }
-}
-```
-
-### get_server_configuration - Get detailed server configuration
-
-No parameters required.
-
-**Returns:**
-Comprehensive server configuration including diagnostics, validation results, and conflict detection.
-
-**Example Response:**
-
-```json
-{
-  "configuration": {
-    "server_name": "openzim-mcp",
-    "allowed_directories": ["/path/to/zim/files"],
-    "cache_enabled": true,
-    "config_hash": "abc123...",
-    "server_pid": 12345
-  },
-  "diagnostics": {
-    "validation_status": "healthy",
-    "conflicts_detected": [],
-    "warnings": [],
-    "recommendations": []
-  }
-}
-```
-
-### diagnose_server_state - Comprehensive server diagnostics
-
-No parameters required.
-
-**Returns:**
-Detailed diagnostic information including instance conflicts, configuration validation, file accessibility checks, and actionable recommendations.
-
-**Example Response:**
-
-```json
-{
-  "status": "healthy",
-  "server_info": {
-    "pid": 12345,
-    "server_name": "openzim-mcp",
-    "config_hash": "abc123..."
-  },
-  "conflicts": [],
-  "issues": [],
-  "recommendations": ["Server appears to be running normally"],
-  "environment_checks": {
-    "directories_accessible": true,
-    "cache_functional": true
-  }
-}
-```
-
-### resolve_server_conflicts - Identify and resolve server conflicts
-
-No parameters required.
-
-**Returns:**
-Results of conflict resolution including cleanup actions and recommendations.
-
-**Example Response:**
-
-```json
-{
-  "status": "success",
-  "cleanup_results": {
-    "stale_instances_removed": 2
-  },
-  "conflicts_found": [],
-  "actions_taken": ["Removed 2 stale instance files"],
-  "recommendations": ["No active conflicts detected"]
-}
-```
-
 ### Additional Search Examples
 
 **Computer-related search:**
@@ -817,91 +709,6 @@ Response:
 }
 ```
 
-### Server Management and Diagnostics Examples
-
-**Getting server health:**
-
-```json
-{
-  "name": "get_server_health"
-}
-```
-
-Response:
-
-```json
-{
-  "status": "healthy",
-  "server_name": "openzim-mcp",
-  "uptime_info": {
-    "process_id": 12345,
-    "started_at": "2025-09-14T10:30:00"
-  },
-  "cache_performance": {
-    "enabled": true,
-    "size": 15,
-    "max_size": 100,
-    "hit_rate": 0.85
-  },
-  "instance_tracking": {
-    "active_instances": 1,
-    "conflicts_detected": 0
-  }
-}
-```
-
-**Diagnosing server state:**
-
-```json
-{
-  "name": "diagnose_server_state"
-}
-```
-
-Response:
-
-```json
-{
-  "status": "healthy",
-  "server_info": {
-    "pid": 12345,
-    "server_name": "openzim-mcp",
-    "config_hash": "abc123def456..."
-  },
-  "conflicts": [],
-  "issues": [],
-  "recommendations": ["Server appears to be running normally. No issues detected."],
-  "environment_checks": {
-    "directories_accessible": true,
-    "cache_functional": true,
-    "zim_files_found": 5
-  }
-}
-```
-
-**Resolving server conflicts:**
-
-```json
-{
-  "name": "resolve_server_conflicts"
-}
-```
-
-Response:
-
-```json
-{
-  "status": "success",
-  "cleanup_results": {
-    "stale_instances_removed": 2,
-    "files_cleaned": ["/home/user/.openzim_mcp_instances/server_99999.json"]
-  },
-  "conflicts_found": [],
-  "actions_taken": ["Removed 2 stale instance files"],
-  "recommendations": ["No active conflicts detected after cleanup"]
-}
-```
-
 ---
 
 ## ZIM Entry Retrieval Best Practices
@@ -979,7 +786,7 @@ or browse_namespace() to explore the file structure.
 
 ## Multi-Server Instance Management
 
-OpenZIM MCP includes advanced multi-server instance tracking and conflict detection to ensure reliable operation when multiple server instances are running.
+OpenZIM MCP includes multi-server instance tracking and conflict detection to ensure reliable operation when multiple server instances are running.
 
 ### Instance Tracking Features
 
@@ -1001,15 +808,7 @@ OpenZIM MCP automatically includes conflict warnings in search results and file 
 ```plain
  **Server Conflict Detected**
  Configuration mismatch with server PID 12345. Search results may be inconsistent.
- Use 'resolve_server_conflicts()' to fix these issues.
 ```
-
-### Best Practices
-
-- Use `diagnose_server_state()` regularly to check for conflicts
-- Run `resolve_server_conflicts()` to clean up stale instances
-- Ensure all server instances use the same configuration when accessing shared directories
-- Monitor server health with `get_server_health()` for instance tracking information
 
 ---
 
