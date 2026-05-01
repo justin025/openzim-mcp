@@ -2533,7 +2533,6 @@ class ZimOperations:
             {
                 "query": query,
                 "files_searched": len(files),
-                "files_with_hits": sum(1 for r in per_file if r.get("has_hits")),
                 "files_searched_successfully": sum(
                     1 for r in per_file if "result" in r
                 ),

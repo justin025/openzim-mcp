@@ -611,33 +611,3 @@ export OPENZIM_MCP_SERVER_NAME=my_openzim_mcp_server
 | `OPENZIM_MCP_HOST` | `127.0.0.1` | Host to bind for HTTP transports |
 | `OPENZIM_MCP_PORT` | `8000` | Port to bind for HTTP transports |
 
----
-
-## Security Features
-
-- **Path Traversal Protection**: Secure path validation prevents access outside allowed directories
-- **Input Sanitization**: All user inputs are validated and sanitized
-- **Resource Management**: Proper cleanup of ZIM archive resources
-- **Error Handling**: Sanitized error messages prevent information disclosure
-- **Type Safety**: Full type annotations prevent type-related vulnerabilities
-
----
-
-## Performance Features
-
-- **Intelligent Caching**: LRU cache with TTL for frequently accessed content
-- **Resource Pooling**: Efficient ZIM archive management
-- **Optimized Content Processing**: Fast HTML to text conversion
-- **Lazy Loading**: Components initialized only when needed
-- **Memory Management**: Proper cleanup and resource management
-
----
-
-## Monitoring
-
-OpenZIM MCP provides built-in monitoring capabilities:
-
-- **Health Checks**: Server health and status monitoring
-- **Cache Metrics**: Cache hit rates and performance statistics
-- **Structured Logging**: JSON-formatted logs for easy parsing
-- **Error Tracking**: Comprehensive error logging and tracking
