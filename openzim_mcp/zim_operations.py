@@ -2948,14 +2948,15 @@ class ZimOperations:
                 # bold markdown for emphasis. Match on the leading prefix.
                 stripped = result_text.lstrip()
                 has_hits = stripped.startswith("Found ")
-                per_file.append(
-                    {
-                        "zim_file_path": path,
-                        "name": file_info.get("name"),
-                        "result": result_text,
-                        "has_hits": has_hits,
-                    }
-                )
+                if has_hits:
+                    per_file.append(
+                        {
+                            "zim_file_path": path,
+                            "name": file_info.get("name"),
+                            "result": result_text,
+                            "has_hits": has_hits,
+                        }
+                    )
             except Exception as e:
                 logger.debug(f"search_all: skipped {path}: {e}")
                 per_file.append(
