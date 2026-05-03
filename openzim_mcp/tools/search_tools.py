@@ -27,10 +27,14 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> str:
-        """Search within ZIM file content.
+        """Search within a specific ZIM file's content.
+
+        **PREFERRED: Use this AFTER `search_zim_files`** to find a specific archive.
+        First call `search_zim_files` with the project name to get the file path,
+        then call this tool with that path for targeted, low-token results.
 
         Args:
-            zim_file_path: Path to the ZIM file
+            zim_file_path: Path to the ZIM file (get from search_zim_files first)
             query: Search query term
             limit: Maximum number of results to return (default from config)
             offset: Result starting offset (for pagination)
@@ -77,10 +81,15 @@ def register_search_tools(server: "OpenZimMcpServer") -> None:
         query: str,
         limit_per_file: int = 5,
     ) -> str:
-        """Search across every ZIM file in the allowed directories.
+        """Run an exact-string search across EVERY ZIM file in the allowed directories.
 
-        Returns merged per-file results so the caller doesn't need to know
-        which file holds the information they want.
+        **EXPENSIVE: Returns hundreds of hits when you only need a specific file.**
+        Only use this when you do NOT know the project name. Preferred flow:
+        1) Call `search_zim_files` with the project name (e.g., "Pandas")
+        2) Call `search_zim_file` with the specific file path from step 1
+
+        Only use `search_all` as a fallback when the project name is unknown.
+
 
         Args:
             query: Search query term (required)

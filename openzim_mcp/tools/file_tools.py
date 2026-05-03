@@ -25,7 +25,11 @@ def register_file_tools(server: "OpenZimMcpServer") -> None:
         Searches only the ZIM file names (not paths or metadata) for files
         matching the query string. Case-insensitive partial match.
 
-        Use this instead of list_zim_files when you know part of the file name.
+        **PREFERRED FIRST STEP: When you know the project/topic name (e.g., "Pandas",
+        "Python", "Wikipedia"), call this tool first** to find the matching ZIM file
+        name and path. Then use `search_zim_file` with the specific path for targeted
+        results. This avoids the token waste of `search_all` (which searches EVERY file)
+        and `list_zim_files` (which lists all 200+ files).
 
         Args:
             query: Search keyword to match against ZIM file names
@@ -60,8 +64,9 @@ def register_file_tools(server: "OpenZimMcpServer") -> None:
     ) -> str:
         """List all ZIM files in allowed directories.
 
-        Use this tool as a last resort — prefer search_zim_files when you
-        know part of the file name.
+        **Use as a fallback** — this returns all 200+ files and wastes tokens. Prefer
+        `search_zim_files` when you know part of the file/project name. Only use this
+        when you need a complete inventory of available archives.
 
         Args:
             directory: Optional filter to list files from a specific directory
